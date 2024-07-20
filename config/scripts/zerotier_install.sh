@@ -12,7 +12,7 @@ ARCHITECTURE=$(uname -m)
 # Create the ZeroTier YUM repository configuration
 echo "[zerotier]
 name=ZeroTier, Inc. repository
-baseurl=https://download.zerotier.com/redhat/${FEDORA_VERSION}/${ARCHITECTURE}
+baseurl=https://download.zerotier.com/redhat/$FEDORA_VERSION/$ARCHITECTURE
 enabled=1
 gpgcheck=0" | sudo tee /etc/yum.repos.d/zerotier.repo
 
