@@ -1,14 +1,9 @@
-# image will be published to ghcr.io/<user>/<name>
 name: hyperblue
-# description will be included in the image's metadata
 description: This is my personal OS image.
 
-# the base image to build on top of (FROM) and the version tag to use
 base-image: ghcr.io/ublue-os/bluefin-dx
 image-version: 40 # latest is also supported if you want new updates ASAP
 
-# module configuration, executed in order
-# you can include multiple instances of the same module
 modules:
   - type: files
     files:
@@ -37,7 +32,7 @@ modules:
       # repo-name: flathub
       # repo-title: "Flathub (system-wide)" # Optional; this sets the remote's user-facing name in graphical frontends like GNOME Software
       install:
-        - org.mozilla.firefox
+        # - org.mozilla.firefox
         # - org.gnome.Loupe
         # - one.ablaze.floorp//lightning # This is an example of flatpak which has multiple branches in selection (flatpak//branch).
       # Flatpak runtimes are not supported (like org.winehq.Wine//stable-23.08),
@@ -46,4 +41,13 @@ modules:
       remove:
       # - org.gnome.eog
 
+  # scripts.
+  - type: script
+    # snippets:
+    #   - "curl https://example.com/examplebinary > /usr/bin/examplebinary" # example: download binary
+    #   - "ln -sf /usr/bin/ld.bfd /etc/alternatives/ld && ln -sf /etc/alternatives/ld /usr/bin/ld" # example: ld alternatives symlink workaround
+    scripts: # scripts in config/scripts/
+      - zerotier_install.sh
+
+  # sign images.
   - type: signing # this sets up the proper policy & signing files for signed images to work fully
