@@ -12,10 +12,6 @@ modules:
           # put configuration files you want in /etc/ on a booted system
           # in /usr/etc/ in the image. read more in files module reference
 
-  - type: script
-    snippets:
-      - "rpm-ostree install https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm"
-
   - type: rpm-ostree
     # repos:
     # - https://copr.fedorainfracloud.org/coprs/atim/starship/repo/fedora-%OS_VERSION%/atim-starship-fedora-%OS_VERSION%.repo
