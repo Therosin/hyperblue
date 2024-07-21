@@ -1,0 +1,22 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"yaml.schemaStore.enable": false,
+		"yaml.schemas": {
+			"file:///x%3A/Development/LinuxProjects/hyperblue/.schemas/recipe.json": "file:///x%3A/Development/LinuxProjects/hyperblue/recipes/recipe.yml"
+		},
+		"yaml.validate": true,
+		"editor.fontLigatures": true,
+		"editor.fontSize": 14,
+		"editor.lineHeight": 24,
+		"editor.letterSpacing": 0.5,
+		"editor.rulers": [
+			150
+		],
+		"editor.minimap.enabled": false
+	}
+}

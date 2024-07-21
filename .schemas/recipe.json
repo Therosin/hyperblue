@@ -1,0 +1,98 @@
+{
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "Name of the OS image"
+        },
+        "description": {
+            "type": "string",
+            "description": "Description of the OS image"
+        },
+        "base-image": {
+            "type": "string",
+            "description": "Base image for the OS"
+        },
+        "image-version": {
+            "anyOf": [
+                {
+                    "type": "integer",
+                    "description": "Version of the image"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^latest$",
+                    "description": "Version of the image (can be 'latest')"
+                }
+            ]
+        },
+        "modules": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "description": "Type of the module"
+                    },
+                    "files": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string",
+                                "description": "File paths and contents"
+                            }
+                        },
+                        "description": "Files to be included in the module"
+                    },
+                    "snippets": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "description": "Shell script snippets to be executed"
+                        },
+                        "description": "Shell script snippets to be executed"
+                    },
+                    "install": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "description": "Packages to install"
+                        },
+                        "description": "Packages to install"
+                    },
+                    "notify": {
+                        "type": "boolean",
+                        "description": "Send notification after install/uninstall"
+                    },
+                    "system": {
+                        "type": "object",
+                        "properties": {
+                            "repo-url": {
+                                "type": "string",
+                                "description": "URL of the Flatpak repository"
+                            },
+                            "repo-name": {
+                                "type": "string",
+                                "description": "Name of the Flatpak repository"
+                            }
+                        },
+                        "description": "System-specific configurations"
+                    }
+                },
+                "required": [
+                    "type"
+                ]
+            },
+            "description": "Modules to be included in the OS image"
+        }
+    },
+    "required": [
+        "name",
+        "description",
+        "base-image",
+        "image-version",
+        "modules"
+    ]
+}
