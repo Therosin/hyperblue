@@ -2,7 +2,7 @@ name: hyperblue
 description: This is my personal OS image.
 
 base-image: ghcr.io/ublue-os/bluefin-dx
-image-version: 40 # latest is also supported if you want new updates ASAP
+image-version: 41 # latest is also supported if you want new updates ASAP
 
 modules:
   - type: rpm-ostree
