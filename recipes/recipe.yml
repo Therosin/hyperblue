@@ -5,13 +5,14 @@ base-image: ghcr.io/ublue-os/bluefin-dx
 image-version: 40 # latest is also supported if you want new updates ASAP
 
 modules:
-  # - type: rpm-ostree
+  - type: rpm-ostree
   # repos:
   # - https://copr.fedorainfracloud.org/coprs/atim/starship/repo/fedora-%OS_VERSION%/atim-starship-fedora-%OS_VERSION%.repo
 
-  # install:
-  # - micro
-  # - starship
+    install:
+      - waydroid
+    # - micro
+    # - starship
   # remove:
   # example: removing firefox (in favor of the flatpak)
   # "firefox" is the main package, "firefox-langpacks" is a dependency
@@ -51,10 +52,35 @@ modules:
       # remove:
       # - org.gnome.eog
 
+  # fix permissions on /usr/local/bin
+  - type: script
+    snippets:
+      - 'chmod -R 755 /usr/local/bin'
+
   # install zerotier
   - type: script
     snippets:
       - 'curl -s ''https://raw.githubusercontent.com/zerotier/ZeroTierOne/main/doc/contact%40zerotier.com.gpg'' | gpg --import && if z=$(curl -s ''https://install.zerotier.com/'' | gpg); then echo "$z" | bash || true; fi'
+
+  # install fnm
+  - type: script
+    snippets:
+      - 'curl -fsSL https://fnm.vercel.app/install | bash'
+
+  # install deno
+  - type: script
+    snippets:
+      - 'curl -fsSL https://bun.sh/install | bash'
+
+  # install bun
+  - type: script
+    snippets:
+      - 'curl -fsSL https://bun.sh | bash'
+
+  # install luvit
+  - type: script
+    snippets:
+      - 'curl -L https://github.com/luvit/lit/raw/master/get-lit.sh | sh'
 
   # scripts.
   - type: script
@@ -62,6 +88,7 @@ modules:
     #   - "curl https://example.com/examplebinary > /usr/bin/examplebinary" # example: download binary
     #   - "ln -sf /usr/bin/ld.bfd /etc/alternatives/ld && ln -sf /etc/alternatives/ld /usr/bin/ld" # example: ld alternatives symlink workaround
     scripts: # scripts in config/scripts/
+      - install_lite-xl.sh
       - install_extras.sh
 
   # sign images.
