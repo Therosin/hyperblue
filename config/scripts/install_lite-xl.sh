@@ -22,7 +22,7 @@ else
     exit 1
 fi
 
-if sudo chown -R root:root /opt/lite-xl && sudo chmod -R 755 /opt/lite-xl; then
+if chown -R root:root /opt/lite-xl && chmod -R 755 /opt/lite-xl; then
     echo "Permissions set successfully."
 else
     echo "Error: Failed to set permissions." >&2
@@ -30,7 +30,7 @@ else
 fi
 
 if ! grep -q '/opt/lite-xl' /etc/profile; then
-    if echo 'export PATH=/opt/lite-xl:$PATH' | sudo tee -a /etc/profile > /dev/null; then
+    if echo 'export PATH=/opt/lite-xl:$PATH' | tee -a /etc/profile > /dev/null; then
         echo "PATH updated successfully."
     else
         echo "Error: Failed to update PATH." >&2
