@@ -111,7 +111,7 @@ modules:
   # install deno
   - type: script
     snippets:
-      - 'curl -fsSL https://bun.sh/install | bash'
+      - 'curl -fsSL https://deno.land/install.sh | sh'
 
   # install bun
   - type: script
