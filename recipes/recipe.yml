@@ -55,6 +55,15 @@ modules:
     snippets:
       - 'chmod -R 755 /usr/local/bin'
 
+
+  - type: bling
+    install:
+      - rpmfusion
+      - dconf-update-service
+
+
+  ### Extras ###
+
   # install zerotier
   - type: script
     snippets:
