@@ -80,7 +80,7 @@ modules:
   # install luvit
   - type: script
     snippets:
-      - 'curl -L https://github.com/luvit/lit/raw/master/get-lit.sh | sh'
+      - 'cd /usr/bin && curl -L https://github.com/luvit/lit/raw/master/get-lit.sh | sh'
 
   # scripts.
   - type: script
