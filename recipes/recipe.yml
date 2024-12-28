@@ -49,7 +49,6 @@ modules:
 
     install:
       - htop
-      - neofetch
       - waydroid
       - zerotier-one
       - podman
