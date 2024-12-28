@@ -1,10 +1,11 @@
 #! /usr/bin/env bash
+# shellcheck disable=SC2181
 set -oue pipefail
 
 function colorize() {
   local color=$1
   shift
-  echo -e "\033[${color}m$@\033[0m"
+  echo -e "\033[${color}m$*\033[0m"
 }
 
 function info() {
@@ -27,8 +28,9 @@ function url_install() {
         exit 1
     fi
 
-    curl -fsSL $url | bash
+    curl -fsSL "$url" | bash
 
+    
     if [[ $? -ne 0 ]]; then
         error "Failed to install $url"
         exit 1
@@ -43,7 +45,7 @@ function safe_exec() {
         exit 1
     fi
 
-    eval $script
+    eval "$script"
 
     if [[ $? -ne 0 ]]; then
         error "Failed to execute $script"
