@@ -2,8 +2,8 @@ modules:
   - type: rpm-ostree
     repos:
       - https://copr.fedorainfracloud.org/coprs/solopasha/hyprland/repo/fedora-41/solopasha-hyprland-fedora-41.repo
-    remove:
-      - xorg-x11-server-Xwayland
+    #remove:
+    #  - xorg-x11-server-Xwayland
     install:
       # hyprland
       - hyprland
