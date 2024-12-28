@@ -76,6 +76,7 @@ function install_luvit() {
 
 info "Installing devtools..."
 install_luvit
-install_deno
-install_bun
-install_fnm
+## disable deno, bun and fnm for now
+#install_deno
+#install_bun
+#install_fnm
