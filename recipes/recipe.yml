@@ -34,15 +34,16 @@ modules:
       - dconf-update-service
 
   - type: rpm-ostree
-    remove:
-      - gnome-shell
-      - gnome-session
-      - gnome-settings-daemon
-      - gnome-control-center
-      - gnome-tweaks
-      - gnome-terminal
-      - gnome-software
-      - mutter
+    # NOTE: temporaraily disabled while testing
+    # remove:
+    #   - gnome-shell
+    #   - gnome-session
+    #   - gnome-settings-daemon
+    #   - gnome-control-center
+    #   - gnome-tweaks
+    #   - gnome-terminal
+    #   - gnome-software
+    #   - mutter
 
     install:
       - waydroid
