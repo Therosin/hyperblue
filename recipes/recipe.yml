@@ -40,11 +40,52 @@ modules:
   - type: rpm-ostree
   # repos:
   # - https://copr.fedorainfracloud.org/coprs/atim/starship/repo/fedora-%OS_VERSION%/atim-starship-fedora-%OS_VERSION%.repo
-  # remove:
-  # example: removing firefox (in favor of the flatpak)
-  # "firefox" is the main package, "firefox-langpacks" is a dependency
-  # - firefox
-  # - firefox-langpacks # also remove firefox dependency (not required for all packages, this is a special case)
+    remove:
+      - gnome-shell
+      - gnome-shell-extensions
+      - gnome-session
+      - gnome-calendar
+      - gnome-screenshot
+      - gnome-maps
+      - gnome-music
+      - gnome-photos
+      - gnome-software
+      - gnome-weather
+      - gnome-clocks
+      - gnome-logs
+      - gnome-books
+      - gnome-documents
+      - gnome-control-center
+      - gnome-tweaks
+      - gnome-disk-utility
+      - gnome-sound-recorder
+      - gnome-remote-desktop
+      - gnome-backgrounds
+      - yaru-theme
+      - mutter
+      - gnome-settings-daemon
+      - orca
+      - at-spi2-core
+      - at-spi2-atk
+      - gnome-builder
+      - gnome-terminal-server
+      - network-manager-gnome
+      - gnome-bluetooth
+      - gnome-chess
+      - gnome-mahjongg
+      - gnome-mines
+      - gnome-sudoku
+      - gnome-help
+      - gnome-user-docs
+      - gnome-characters
+      - gnome-font-viewer
+      - gnome-sound-recorder
+      - gnome-video-effects
+      - gnome-session-bin
+      - gnome-session-common
+      - gnome-shell-common
+      - gnome-icon-theme
+      - gnome-icon-theme-symbolic
     install:
       - waydroid
       - zerotier-one
