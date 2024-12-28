@@ -4,8 +4,6 @@ modules:
       - https://copr.fedorainfracloud.org/coprs/solopasha/hyprland/repo/fedora-41/solopasha-hyprland-fedora-41.repo
     remove:
       - xorg-x11-server-Xwayland
-      - firefox # default firefox removed in favor of flatpak
-      - firefox-langpacks # langpacks needs to also be removed to prevent dependency problems
     install:
       # hyprland
       - hyprland
