@@ -48,11 +48,6 @@ modules:
       # remove:
       # - org.gnome.eog
 
-  # fix permissions on /usr/local/bin
-  - type: script
-    snippets:
-      - 'chmod -R 755 /usr/local/bin'
-
 
   - type: bling
     install:
@@ -65,7 +60,7 @@ modules:
     brew-analytics: false # disable telemetry
 
 
-  ### Extras ###
+### Extras ###
 
   # install zerotier
   - type: script
