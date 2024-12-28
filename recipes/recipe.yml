@@ -36,17 +36,6 @@ modules:
       - dconf-update-service
 
   - type: rpm-ostree
-    # NOTE: temporaraily disabled while testing
-    # remove:
-    #   - gnome-shell
-    #   - gnome-session
-    #   - gnome-settings-daemon
-    #   - gnome-control-center
-    #   - gnome-tweaks
-    #   - gnome-terminal
-    #   - gnome-software
-    #   - mutter
-
     install:
       - htop
       - waydroid
@@ -68,6 +57,7 @@ modules:
     nofile-limits: true # increase nofile limits
     brew-analytics: false # disable telemetry
 
+  - from-file: hyprland.yml
 
 ### Extras ###
 
