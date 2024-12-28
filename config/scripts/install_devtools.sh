@@ -66,7 +66,7 @@ function install_deno() {
 
 function install_bun() {
     info "Installing bun..."
-    url_install https://bun.sh
+    url_install https://bun.sh/install
 }
 
 function install_luvit() {
