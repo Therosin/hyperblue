@@ -21,13 +21,16 @@ modules:
         - org.gnome.eog
       install:
         # - one.ablaze.floorp//lightning # This is an example of flatpak which has multiple branches in selection (flatpak//branch).
+        - app.devsuite.Ptyxis
+        - io.github.dvlv.boxbuddyrs
         - com.github.tchx84.Flatseal
         - com.protonvpn.www
         - me.proton.Pass
         - me.proton.Mail
         - md.obsidian.Obsidian
         - re.sonny.Junction
-
+        - lxqt-openssh-askpass
+  
   - type: bling
     install:
       - rpmfusion
@@ -46,8 +49,21 @@ modules:
     #   - mutter
 
     install:
+      - htop
+      - neofetch
       - waydroid
       - zerotier-one
+      - podman
+      - podman-compose
+
+  - type: systemd
+    system:
+      enabled:
+        - sshd.service
+        - zerotier-one.service
+    user:
+      enabled:
+        - podman.service
 
   # enable linuxbrew
   - type: brew
