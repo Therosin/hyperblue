@@ -1,26 +1,22 @@
 name: hyperblue
-description: This is my personal OS image.
-
+description: Custom image for bluefin-dx with waydroid, hyprland and essential development tools.
 base-image: ghcr.io/ublue-os/bluefin-dx
-image-version: 41 # latest is also supported if you want new updates ASAP
+image-version: 41
 
 modules:
 
+### Base ###
   - type: files
     files:
-      - source: usr   # copies `files/usr/*` to `/usr/` inside the image
+      - source: usr
         destination: /usr
 
   - type: default-flatpaks
-    notify: true # Send notification after install/uninstall is finished (true/false)
+    notify: true
     system:
-      # If no repo information is specified, Flathub will be used by default
       repo-url: https://dl.flathub.org/repo/flathub.flatpakrepo
       repo-name: flathub
-      repo-title: "Flathub (system-wide)" # Optional; this sets the remote's user-facing name in graphical frontends like GNOME Software
-      # Flatpak runtimes are not supported (like org.winehq.Wine//stable-23.08),
-      # only normal flatpak applications are (like Floorp Lightning web browser in this example).
-      # Installing different branches of the same Flatpak is not supported.
+      repo-title: "Flathub (system-wide)"
       # remove:
       # - org.gnome.eog
       install:
@@ -61,16 +57,8 @@ modules:
 
 ### Extras ###
 
-  # install zerotier
-  # - type: script
-  #  snippets:
-  #    - 'curl -s ''https://raw.githubusercontent.com/zerotier/ZeroTierOne/main/doc/contact%40zerotier.com.gpg'' | gpg --import && if z=$(curl -s ''https://install.zerotier.com/'' | gpg); then echo "$z" | bash || true; fi'
-
-  # scripts.
+  # run scripts
   - type: script
-    # snippets:
-    #   - "curl https://example.com/examplebinary > /usr/bin/examplebinary" # example: download binary
-    #   - "ln -sf /usr/bin/ld.bfd /etc/alternatives/ld && ln -sf /etc/alternatives/ld /usr/bin/ld" # example: ld alternatives symlink workaround
     scripts: # scripts in config/scripts/
       - install_devtools.sh
       - install_lite-xl.sh
