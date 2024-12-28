@@ -21,10 +21,8 @@ modules:
 
   - type: files
     files:
-      - usr:
-          /usr # copies config/files/usr into your image's /usr.
-          # put configuration files you want in /etc/ on a booted system
-          # in /usr/etc/ in the image. read more in files module reference
+      - source: usr   # copies `files/usr/*` to `/usr/` inside the image
+        destination: /usr
 
   - type: default-flatpaks
     notify: true # Send notification after install/uninstall is finished (true/false)
