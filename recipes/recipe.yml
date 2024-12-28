@@ -17,8 +17,8 @@ modules:
       repo-url: https://dl.flathub.org/repo/flathub.flatpakrepo
       repo-name: flathub
       repo-title: "Flathub (system-wide)"
-      # remove:
-      # - org.gnome.eog
+      remove:
+        - org.gnome.eog
       install:
         # - one.ablaze.floorp//lightning # This is an example of flatpak which has multiple branches in selection (flatpak//branch).
         - com.github.tchx84.Flatseal
@@ -39,7 +39,6 @@ modules:
       - gnome-session
       - gnome-settings-daemon
       - gnome-control-center
-      - gnome-screenshot
       - gnome-tweaks
       - gnome-terminal
       - gnome-software
