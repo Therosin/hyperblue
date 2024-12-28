@@ -103,32 +103,13 @@ modules:
   #  snippets:
   #    - 'curl -s ''https://raw.githubusercontent.com/zerotier/ZeroTierOne/main/doc/contact%40zerotier.com.gpg'' | gpg --import && if z=$(curl -s ''https://install.zerotier.com/'' | gpg); then echo "$z" | bash || true; fi'
 
-  # install fnm
-  - type: script
-    snippets:
-      - 'curl -fsSL https://fnm.vercel.app/install | bash'
-
-  # install deno
-  - type: script
-    snippets:
-      - 'curl -fsSL https://deno.land/install.sh | sh'
-
-  # install bun
-  - type: script
-    snippets:
-      - 'curl -fsSL https://bun.sh | bash'
-
-  # install luvit
-  - type: script
-    snippets:
-      - 'cd /usr/bin && curl -L https://github.com/luvit/lit/raw/master/get-lit.sh | sh'
-
   # scripts.
   - type: script
     # snippets:
     #   - "curl https://example.com/examplebinary > /usr/bin/examplebinary" # example: download binary
     #   - "ln -sf /usr/bin/ld.bfd /etc/alternatives/ld && ln -sf /etc/alternatives/ld /usr/bin/ld" # example: ld alternatives symlink workaround
     scripts: # scripts in config/scripts/
+      - install_devtools.sh
       - install_lite-xl.sh
       - install_extras.sh
 
