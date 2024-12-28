@@ -22,7 +22,7 @@ else
     exit 1
 fi
 
-if sudo chown -R root:root /opt/lite-xl && sudo chmod -R 755 /opt/lite-xl; then
+if chown -R root:root /opt/lite-xl && sudo chmod -R 755 /opt/lite-xl; then
     echo "Permissions set successfully."
 else
     echo "Error: Failed to set permissions." >&2
