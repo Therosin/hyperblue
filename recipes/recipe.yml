@@ -40,19 +40,15 @@ modules:
   - type: rpm-ostree
     remove:
       - gnome-shell
-      - gnome-shell-extensions
       - gnome-session
-      - gnome-calendar
-      - gnome-screenshot
-      - gnome-maps
-      - gnome-software
-      - gnome-control-center
-      - gnome-tweaks
-      - gnome-disk-utility
       - gnome-settings-daemon
-      - gnome-terminal-server
+      - gnome-control-center
+      - gnome-screenshot
+      - gnome-tweaks
+      - gnome-terminal
+      - gnome-software
       - mutter
-      - gdm
+
     install:
       - waydroid
       - zerotier-one
