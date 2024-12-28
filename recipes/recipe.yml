@@ -29,7 +29,6 @@ modules:
         - me.proton.Mail
         - md.obsidian.Obsidian
         - re.sonny.Junction
-        - lxqt-openssh-askpass
   
   - type: bling
     install:
