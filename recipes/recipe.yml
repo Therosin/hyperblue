@@ -93,8 +93,6 @@ modules:
       - podman
       - podman-compose
       - podman-docker # symlinks docker to podman
-      - visual-studio-code-bin # vscode
-      - visual-studio-code-bin-extensions # vscode extensions
 
       # zerotier
       - zerotier-one
