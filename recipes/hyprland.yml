@@ -1,0 +1,88 @@
+modules:
+
+  - type: rpm-ostree
+    repos: 
+      # hyprland
+      - https://copr.fedorainfracloud.org/coprs/solopasha/hyprland/repo/fedora-%OS_VERSION%/solopasha-hyprland-fedora-%OS_VERSION%.repo
+
+    install:
+      # launcher
+      - wofi
+      # environment
+      - xorg-x11-server-Xwayland
+      - polkit
+      - xfce-polkit 
+      - xdg-user-dirs
+      - dbus-tools
+      - dbus-daemon
+      - wl-clipboard
+      - pavucontrol
+      - playerctl
+      - qt5-qtwayland
+      - qt6-qtwayland
+      - vulkan-validation-layers
+      - vulkan-tools
+      - google-noto-emoji-fonts
+      - gnome-disk-utility
+      - ddcutil
+      # sound
+      - wireplumber
+      - pipewire
+      - pamixer
+      - pulseaudio-utils
+      # networking
+      - network-manager-applet
+      - NetworkManager-openvpn
+      - NetworkManager-openconnect
+      - bluez
+      - bluez-tools
+      - blueman
+      # file manager
+      - thunar
+      - thunar-archive-plugin 
+      - thunar-volman
+      - xarchiver
+      - imv
+      - p7zip
+      - unrar
+      - gvfs-mtp
+      - gvfs-gphoto2
+      - gvfs-smb
+      - gvfs-nfs
+      - gvfs-fuse
+      - gvfs-archive
+      - android-tools
+      - zathura
+      # screenshot
+      - slurp
+      - grim
+      # display
+      - wlr-randr
+      - wlsunset
+      - brightnessctl
+      - hyprlock
+      - hypridle
+      - swww
+      - waypaper
+      - wlogout
+      - kanshi
+      - cava
+      # terminal
+      - kitty
+      - fastfetch
+      # notifications
+      - mako
+      # theme and GUI
+      - fontawesome-fonts-all
+      - gnome-themes-extra
+      - gnome-icon-theme
+      - paper-icon-theme
+      - breeze-icon-theme 
+      - papirus-icon-theme
+      - lxappearance
+      # hyprland
+      - hyprland
+      - waybar
+      - xdg-desktop-portal-hyprland
+      - brightnessctl
+

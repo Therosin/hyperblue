@@ -8,8 +8,12 @@ modules:
 ### Base ###
   - type: files
     files:
+      # copy base recipe files
       - source: usr
         destination: /usr
+      # copy user files
+      - source: /etc/skel
+        destination: /etc/skel/
 
   - type: default-flatpaks
     notify: true
@@ -22,13 +26,23 @@ modules:
       install:
         # - one.ablaze.floorp//lightning # This is an example of flatpak which has multiple branches in selection (flatpak//branch).
         - app.devsuite.Ptyxis
-        - io.github.dvlv.boxbuddyrs
         - com.github.tchx84.Flatseal
+        - io.github.flattool.Warehouse
+        - io.github.dvlv.boxbuddyrs
+        - com.usebottles.bottles
+        - com.interversehq.qView
         - com.protonvpn.www
         - me.proton.Pass
         - me.proton.Mail
         - md.obsidian.Obsidian
         - re.sonny.Junction
+        - io.mpv.Mpv
+        - com.stremio.Stremio
+        - org.gimp.GIMP
+        - org.onlyoffice.desktopeditors
+        - org.nickvision.tubeconverter
+        - com.github.finefindus.eyedropper
+        - org.upscayl.Upscayl
   
   - type: bling
     install:
@@ -36,17 +50,6 @@ modules:
       - dconf-update-service
 
   - type: rpm-ostree
-    # NOTE: temporaraily disabled while testing
-    # remove:
-    #   - gnome-shell
-    #   - gnome-session
-    #   - gnome-settings-daemon
-    #   - gnome-control-center
-    #   - gnome-tweaks
-    #   - gnome-terminal
-    #   - gnome-software
-    #   - mutter
-
     install:
       - htop
       - waydroid
@@ -68,6 +71,7 @@ modules:
     nofile-limits: true # increase nofile limits
     brew-analytics: false # disable telemetry
 
+  - from-file: hyprland.yml
 
 ### Extras ###
 
