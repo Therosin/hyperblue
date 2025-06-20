@@ -1,0 +1,199 @@
+title: Welcome to uBlue
+properties:
+  mode: "run-on-change"
+screens:
+  first-screen:
+    source: yafti.screen.title
+    values:
+      title: "Welcome to HyperBlue"
+      icon: "/path/to/icon"
+      description: |
+        This guided installer will help you get started with your new system.
+  can-we-modify-your-flatpaks:
+    source: yafti.screen.consent
+    values:
+      title: Welcome, Traveler!
+      condition:
+        run: flatpak remotes --columns=name | grep fedora
+      description: |
+        We have detected the limited, Fedora-provided Flatpak remote on your system, whose applications are usually missing important codecs and other features. This step will therefore remove all basic Fedora Flatpaks from your system! We will instead switch all core Flatpak applications over to the vastly superior, unfiltered Flathub. If you don't want to do this, simply exit this installer.
+      actions:
+        - run: flatpak remote-delete --system --force fedora
+        - run: flatpak remote-delete --user --force fedora
+        - run: flatpak remove --system --noninteractive --all
+        - run: flatpak remote-add --if-not-exists --system flathub https://flathub.org/repo/flathub.flatpakrepo
+        - run: flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
+  check-system-flathub:
+    source: yafti.screen.consent
+    values:
+      title: Missing Flathub Repository (System)
+      condition:
+        run: flatpak remotes --system --columns=name | grep flathub | wc -l | grep '^0$'
+      description: |
+        We have detected that you don't have Flathub's repository on your system. We will now add that repository to your system-wide list.
+      actions:
+        - run: flatpak remote-add --if-not-exists --system flathub https://flathub.org/repo/flathub.flatpakrepo
+  check-user-flathub:
+    source: yafti.screen.consent
+    values:
+      title: Missing Flathub Repository (User)
+      condition:
+        run: flatpak remotes --user --columns=name | grep flathub | wc -l | grep '^0$'
+      description: |
+        We have detected that you don't have Flathub's repository on your current user account. We will now add that repository to your account.
+      actions:
+        - run: flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
+  applications:
+    source: yafti.screen.package
+    values:
+      title: Application Installer
+      show_terminal: true
+      package_manager: yafti.plugin.flatpak
+      package_manager_defaults:
+        user: false
+        system: true
+      groups:
+        # Core System Applications
+        System Apps:
+          description: System applications.
+          default: true
+          packages:
+            - Warehouse (Flatpak Manager): io.github.flattool.Warehouse
+            - Flatseal (Permission Manager): com.github.tchx84.Flatseal
+            - Flatsweep (Flatpak Cleaner): io.github.giantpinkrobots.flatsweep
+            - Font Downloader: org.gustavoperedo.FontDownloader
+            - Embellish (Nerd Fonts Manager): io.github.getnf.embellish
+            - BoxBuddy (System Monitor): io.github.dvlv.boxbuddyrs
+            - Firmware Updater: org.gnome.Firmware
+
+        # Privacy and Security
+        Privacy:
+          description: "Protect your privacy with these applications."
+          default: false
+          packages:
+            - KeePassXC (Password Manager): org.keepassxc.KeePassXC
+            - Bitwarden (Password Manager): com.bitwarden.desktop
+            - Cryptomator (Local Cloud Encryption): org.cryptomator.Cryptomator
+            - ProtonVPN: com.protonvpn.www
+            - Proton Mail: me.proton.Mail
+            - Proton Pass: me.proton.Pass
+            - Proton Drive: com.proton.drive
+            - Mullvad VPN: com.mullvad.MullvadVPN
+            - NordVPN: com.nordvpn.NordVPN
+        
+        # Browsers
+        Web Browsers:
+          description: "Browse the web with these applications."
+          default: false
+          packages:
+            - Firefox: org.mozilla.firefox
+            - Google Chrome: com.google.Chrome
+            - Brave: com.brave.Browser
+            - Microsoft Edge: com.microsoft.Edge
+            - Opera: com.opera.Opera
+
+        # Communication
+        Communication:
+          description: "Stay connected with these applications."
+          default: false
+          packages:
+            - Discord: com.discordapp.Discord
+            - Slack: com.slack.Slack
+            - Element (Matrix Client): im.riot.Riot
+            - BlueMail (Email Client): net.blix.BlueMail
+            - Thunderbird (Email Client): org.mozilla.Thunderbird
+            - Telegram: org.telegram.desktop
+            - Signal: org.signal.Signal
+        
+        # Office and Productivity
+        Office:
+          description: Boost your productivity.
+          default: false
+          packages:
+            - Super Productivity (Todo App): com.super_productivity.SuperProductivity
+            - Eloquent(Grammarly Alternative): re.sonny.Eloquent
+            - MarkText (Markdown Editor): com.github.marktext.marktext
+            - LibreOffice: org.libreoffice.LibreOffice
+            - OnlyOffice: org.onlyoffice.desktopeditors
+            - Obsidian (Note-taking): md.obsidian.Obsidian
+            - Zotero (Reference Manager): org.zotero.Zotero
+            - XMind (Mind Mapping): net.xmind.XMind
+            - Story Architect (Writing Tool): dev.storyapps.starc
+            - Rescribe (OCR Tool): xyz.rescribe.rescribe
+
+        # Media
+        Media:
+          description: "Play your media with these applications."
+          default: false
+          packages:
+            - GIMP (Image Editor): org.gimp.GIMP
+            - Krita (Digital Painting): org.kde.krita
+            - Inkscape (Vector Graphics): org.inkscape.Inkscape
+            - VLC Media Player: org.videolan.VLC
+            - Clementine Music Player: org.clementine_player.Clementine
+            - Audacity: org.audacityteam.Audacity
+            - Spotify: com.spotify.Client
+            - Kdenlive (Video Editor): org.kde.kdenlive
+            - Shotcut (Video Editor): org.shotcut.Shotcut
+            - Jupii (DLNA Player): net.mkiol.Jupii
+            - JamesDSP (Audio Processing): me.timschneeberger.jdsp4linux
+
+        # Gaming
+        Gaming: 
+          description: "Game on Linux with these applications."
+          default: false
+          packages:
+            - Bottles: com.usebottles.bottles
+            - Discord: com.discordapp.Discord
+            - Heroic Games Launcher: com.heroicgameslauncher.hgl
+            - Steam: com.valvesoftware.Steam
+            - Moonlight (Remote Game Streaming): com.moonlight_stream.Moonlight
+            - Gamescope (Utility): org.freedesktop.Platform.VulkanLayer.gamescope
+            - MangoHUD (Utility): org.freedesktop.Platform.VulkanLayer.MangoHud//22.08
+            - SteamTinkerLaunch (Utility): com.valvesoftware.Steam.Utility.steamtinkerlaunch
+            - Proton Updater for Steam: net.davidotek.pupgui2
+
+        # Srreaming
+        Streaming:
+          description: Stream to the Internet.
+          default: false
+          packages:
+            - OBS Studio: com.obsproject.Studio
+            - VkCapture for OBS: com.obsproject.Studio.OBSVkCapture
+            - Gstreamer for OBS: com.obsproject.Studio.Plugin.Gstreamer
+            - Gstreamer VAAPI for OBS: com.obsproject.Studio.Plugin.GStreamerVaapi
+            - Boatswain for Streamdeck: com.feaneron.Boatswain
+
+        # Development Tools
+        Development:
+          description: "For the developers among us."
+          default: false
+          packages:
+            - GitKraken: com.axosoft.GitKraken
+            - Insomnia: rest.insomnia.Insomnia
+
+        # Utilities
+        Utilities:
+          description: "Useful utilities for your system."
+          default: false
+          packages:
+            - Shortcut (App Pinning): io.github.andreibachim.shortcut
+            - Spider (Web App Manager): io.github.zaedus.spider
+            - GParted (Partition Manager): org.gnome.GParted
+            - BleachBit (System Cleaner): org.bleachbit.BleachBit
+            - Timeshift (System Backup): com.github.timeshift.timeshift
+            - FileZilla (FTP Client): org.filezillaproject.Filezilla
+            - Hashes (Hash Inpector): io.github.zefr0x.hashes
+        
+  final-screen:
+    source: yafti.screen.title
+    values:
+      title: "All done!"
+      icon: "/path/to/icon"
+      links:
+        - "Install More Applications":
+            run: /usr/bin/gnome-software
+        - "Website":
+            run: /usr/bin/xdg-open https://github.com/Therosin/hyperblue
+      description: |
+        Thanks for trying uBlue, we hope you enjoy it!
