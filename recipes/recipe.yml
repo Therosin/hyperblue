@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 name: hyperblue
 description: Custom image for bluefin-dx with waydroid, hyprland and essential development tools.
 base-image: ghcr.io/ublue-os/bluefin-dx
@@ -38,19 +39,12 @@ modules:
   - type: bling # configure what to pull in from ublue-os/bling
     install:
       # - ublue-update # https://github.com/ublue-os/ublue-update
-      - ublue-os-wallpapers
       - dconf-update-service
       - rpmfusion
-      - justfiles # add "!include /usr/share/ublue-os/just/100-bling.just"
-        # in your custom.just (added by default) or local justfile
-      - nix-installer # shell shortcuts for determinate system's nix installers
-      - devpod # https://devpod.sh/ as an rpm
-      # - laptop # installs TLP and configures your system for laptop usage
-      # - flatpaksync # allows synchronization of user-installed flatpaks, see separate documentation section
 
   - type: rpm-ostree
     repos:
-      - https://copr.fedorainfracloud.org/coprs/solopasha/hyprland/repo/fedora-42/solopasha-hyprland-fedora-42.repo
+      - https://copr.fedorainfracloud.org/coprs/solopasha/hyprland/repo/fedora-%OS_VERSION%/solopasha-hyprland-fedora-%OS_VERSION%.repo
     install:
       # hyprland
       - hyprland
@@ -148,7 +142,7 @@ modules:
       #  will be installed and set up
     custom-flatpaks:
       # this section is optional
-      # - Celluloid: io.github.celluloid_player.Celluloid
+      - Celluloid: io.github.celluloid_player.Celluloid
       # - Krita: org.kde.krita
 
   ### Extras ###
