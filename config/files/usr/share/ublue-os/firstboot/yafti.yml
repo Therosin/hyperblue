@@ -81,7 +81,7 @@ screens:
             - Mullvad VPN: com.mullvad.MullvadVPN
             - NordVPN: com.nordvpn.NordVPN
         
-        # Browers
+        # Browsers
         Web Browsers:
           description: "Browse the web with these applications."
           default: false
