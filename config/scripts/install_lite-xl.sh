@@ -6,9 +6,9 @@
 set -oue pipefail
 echo "Installing Lite-XL..."
 
-curl -LO https://github.com/lite-xl/lite-xl/releases/download/v2.1.7/lite-xl-v2.1.7-addons-linux-x86_64-portable.tar.gz
+curl -LO https://github.com/lite-xl/lite-xl/releases/download/v2.1.8/lite-xl-v2.1.8-addons-linux-x86_64-portable.tar.gz
 
-if tar -xzf lite-xl-v2.1.7-addons-linux-x86_64-portable.tar.gz -C /opt; then
+if tar -xzf lite-xl-v2.1.8-addons-linux-x86_64-portable.tar.gz -C /opt; then
     echo "Extraction successful."
 else
     echo "Error: Extraction failed." >&2
@@ -38,7 +38,7 @@ if ! grep -q '/opt/lite-xl' /etc/profile; then
     fi
 fi
 
-if rm -f lite-xl-v2.1.7-addons-linux-x86_64-portable.tar.gz; then
+if rm -f lite-xl-v2.1.8-addons-linux-x86_64-portable.tar.gz; then
     echo "Cleanup successful."
 else
     echo "Error: Cleanup failed." >&2
