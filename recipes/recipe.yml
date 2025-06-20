@@ -7,8 +7,12 @@ modules:
   ### Base ###
   - type: files
     files:
+      # copy base recipe files
       - source: usr
         destination: /usr
+      # copy user files
+      - source: /etc/skel
+        destination: /etc/skel/
 
   - type: default-flatpaks
     notify: true
@@ -22,6 +26,10 @@ modules:
         # - one.ablaze.floorp//lightning # This is an example of flatpak which has multiple branches in selection (flatpak//branch).
         - app.devsuite.Ptyxis
         - com.github.tchx84.Flatseal
+        - io.github.flattool.Warehouse
+        - io.github.dvlv.boxbuddyrs
+        - com.usebottles.bottles
+        - com.interversehq.qView
         - com.protonvpn.www
         - me.proton.Pass
         - me.proton.Mail
