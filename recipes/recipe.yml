@@ -92,8 +92,8 @@ modules:
       # dev tools
       - podman
       - podman-compose
-      - podman-docker # symlinks docker to podman
-
+      
+      
       # zerotier
       - zerotier-one
 
