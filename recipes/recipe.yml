@@ -139,7 +139,7 @@ modules:
         - re.sonny.Eloquent # Grammar checker
         - com.github.wwmm.easyeffects # audio equalizer
         - org.pipewire.Helvum # pipewire graph visualizer
-        - org.github.input_leap.input_leap # input sharing tool
+        - io.github.input_leap.input-leap # input sharing tool
 
         # Media
         - be.alexandervanhee.gradia # screenshot tool
