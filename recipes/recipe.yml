@@ -130,14 +130,14 @@ modules:
     nofile-limits: true # increase nofile limits
     brew-analytics: false # disable telemetry
 
-  - type:
-      yafti
-      # if included, yafti and it's dependencies (pip & libadwaita)
-      #  will be installed and set up
-    custom-flatpaks:
-      # this section is optional
-      - Celluloid: io.github.celluloid_player.Celluloid
-      # - Krita: org.kde.krita
+  # - type:
+  #     yafti
+  #     # if included, yafti and it's dependencies (pip & libadwaita)
+  #     #  will be installed and set up
+  #   custom-flatpaks:
+  #     # this section is optional
+  #     - Celluloid: io.github.celluloid_player.Celluloid
+  #     # - Krita: org.kde.krita
 
   ### Extras ###
 
