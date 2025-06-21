@@ -28,13 +28,6 @@ modules:
         - app.devsuite.Ptyxis
         - com.github.tchx84.Flatseal
         - io.github.flattool.Warehouse
-        - io.github.dvlv.boxbuddyrs
-        - com.usebottles.bottles
-        - com.interversehq.qView
-        - com.protonvpn.www
-        - me.proton.Pass
-        - me.proton.Mail
-        - re.sonny.Junction
 
   - type: bling # configure what to pull in from ublue-os/bling
     install:
@@ -46,6 +39,9 @@ modules:
     repos:
       - https://copr.fedorainfracloud.org/coprs/solopasha/hyprland/repo/fedora-%OS_VERSION%/solopasha-hyprland-fedora-%OS_VERSION%.repo
     install:
+      # base
+      - openssh-server # ssh server
+
       # hyprland
       - hyprland
       - hyprpaper # wallpaper util
@@ -93,7 +89,7 @@ modules:
       - podman
       - podman-compose
       
-      
+
       # zerotier
       - zerotier-one
 
@@ -126,7 +122,7 @@ modules:
         - zerotier-one.service
     user:
       enabled:
-        - sshd.service
+        # - sshd.service
         - podman.service
 
   # enable linuxbrew
