@@ -1,11 +1,11 @@
+# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 name: hyperblue
 description: Custom image for bluefin-dx with waydroid, hyprland and essential development tools.
 base-image: ghcr.io/ublue-os/bluefin-dx
-image-version: 41
+image-version: 42
 
 modules:
-
-### Base ###
+  ### Base ###
   - type: files
     files:
       # copy base recipe files
@@ -14,6 +14,110 @@ modules:
       # copy user files
       - source: /etc/skel
         destination: /etc/skel/
+
+  - type: bling # configure what to pull in from ublue-os/bling
+    install:
+      # - ublue-update # https://github.com/ublue-os/ublue-update
+      - dconf-update-service
+      - rpmfusion
+
+  - type: rpm-ostree
+    repos:
+      - https://copr.fedorainfracloud.org/coprs/solopasha/hyprland/repo/fedora-%OS_VERSION%/solopasha-hyprland-fedora-%OS_VERSION%.repo
+    install:
+      # base
+      - openssh-server # ssh server
+
+      # terminal
+      - alacritty # minimal terminal
+      - micro # tui editor better than nano
+      - zsh # shell
+
+      # audio
+      - pavucontrol
+      - pipewire
+      - playerctl
+      - wireplumber
+
+      # bluetooth
+      - blueman
+
+      # network
+      - network-manager-applet
+      - NetworkManager-l2tp-gnome
+      - NetworkManager-libreswan-gnome
+      - NetworkManager-openconnect-gnome
+      - NetworkManager-openvpn-gnome
+      - NetworkManager-pptp-gnome
+      - NetworkManager-sstp-gnome
+      - NetworkManager-vpnc-gnome
+
+      # modern cli tools https://github.com/ibraheemdev/modern-unix
+      - duf
+      - eza
+      - fd-find
+      - httpie
+      - procs
+      - tldr
+
+      # hyprland
+      - hyprland
+      - hyprpaper # wallpaper util
+      - hyprpicker # color picker
+      - hyprshot # screenshot util
+      - xdg-desktop-portal-hyprland # desktop portal
+
+      # qt
+      - qt5-qtwayland
+      - qt6-qtwayland
+
+      # system utilities
+      - system-config-printer
+      - gnome-keyring-pam
+      - fprintd-pam
+      - lxqt-policykit
+      - pinentry-gnome3
+      - brightnessctl
+      - plymouth-system-theme
+      - wl-clipboard
+
+      # display manager
+      - sddm-wayland-generic
+
+      # zerotier
+      - zerotier-one
+
+      # Desktop environment
+      - waybar # status bar
+      - swaylock # lock screen
+      - dunst # notification daemon
+      - rofi-wayland # application launcher
+      - nautilus # file manager
+
+      # dev tools
+      - podman
+      - podman-compose
+
+      # other
+      - htop # system monitor
+
+    # remove:
+    #   - firefox # default firefox removed in favor of flatpak
+    #   - firefox-langpacks # langpacks needs to also be removed to prevent dependency problems
+
+  - type: systemd
+    system:
+      enabled:
+        - zerotier-one.service
+    user:
+      enabled:
+        # - sshd.service
+        - podman.service
+
+  # enable linuxbrew
+  - type: brew
+    nofile-limits: true # increase nofile limits
+    brew-analytics: false # disable telemetry
 
   - type: default-flatpaks
     notify: true
@@ -24,62 +128,45 @@ modules:
       remove:
         - org.gnome.eog
       install:
-        # - one.ablaze.floorp//lightning # This is an example of flatpak which has multiple branches in selection (flatpak//branch).
+        # System utilities
+        - org.gnome.Firmware
         - app.devsuite.Ptyxis
-        - com.github.tchx84.Flatseal
-        - io.github.flattool.Warehouse
-        - io.github.dvlv.boxbuddyrs
-        - com.usebottles.bottles
-        - com.interversehq.qView
-        - com.protonvpn.www
-        - me.proton.Pass
-        - me.proton.Mail
-        - md.obsidian.Obsidian
-        - re.sonny.Junction
-        - io.mpv.Mpv
-        - com.stremio.Stremio
-        - org.gimp.GIMP
-        - org.onlyoffice.desktopeditors
-        - org.nickvision.tubeconverter
-        - com.github.finefindus.eyedropper
-        - org.upscayl.Upscayl
-  
-  - type: bling
-    install:
-      - rpmfusion
-      - dconf-update-service
+        - io.missioncenter.MissionCenter # system information tool
+        - com.github.tchx84.Flatseal # flatpak permissions manager
+        - io.github.flattool.Warehouse # flatpak manager
+        - com.ranfdev.DistroShelf # DistroBox manager
+        - re.sonny.Junction # File Association Proxy
+        - re.sonny.Eloquent # Grammar checker
+        - com.github.wwmm.easyeffects # audio equalizer
+        - org.pipewire.Helvum # pipewire graph visualizer
+        - io.github.input_leap.input-leap # input sharing tool
 
-  - type: rpm-ostree
-    install:
-      - htop
-      - waydroid
-      - zerotier-one
-      - podman
-      - podman-compose
+        # Media
+        - be.alexandervanhee.gradia # screenshot tool
+        - org.js.nuclear.Nuclear # music player
+        - org.kde.haruna # video player
 
-  - type: systemd
-    system:
-      enabled:
-        - sshd.service
-        - zerotier-one.service
-    user:
-      enabled:
-        - podman.service
+        # Development tools
+        - com.felipekinoshita.Wildcard # regex testing tool
+        - io.github.zefr0x.hashes # hash calculator
+        - net.werwolv.ImHex # hex editor
+        - org.gnome.meld # diff tool
+        - com.visualstudio.code
+        - sh.loft.devpod
 
-  # enable linuxbrew
-  - type: brew
-    nofile-limits: true # increase nofile limits
-    brew-analytics: false # disable telemetry
+        # Internet
+        - com.vivaldi.Vivaldi
+        - de.schmidhuberj.tubefeeder # youtube client
+        - io.github.giantpinkrobots.varia # download manager
 
-  - from-file: hyprland.yml
+        # Communication
+        - io.github.equicord.equibop # discord client
 
-### Extras ###
+  ### Extras ###
 
   # run scripts
   - type: script
     scripts: # scripts in config/scripts/
-      - install_devtools.sh
-      - install_lite-xl.sh
       - install_extras.sh
 
   # sign images.
