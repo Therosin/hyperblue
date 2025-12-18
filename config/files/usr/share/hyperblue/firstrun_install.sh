@@ -114,10 +114,15 @@ main() {
     local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hyperblue"
     local first_run_flag="${config_dir}/.firstrun_done"
 
-    mkdir -p "$config_dir"
+    # Ensure config directory exists before attempting flag file creation
+    if ! mkdir -p "$config_dir"; then
+        error "Failed to create config directory: $config_dir"
+        exit 1
+    fi
 
     # Atomically create the flag file to prevent race conditions
     # Using noclobber mode (set -C) ensures the file is created exclusively
+    # The colon (:) is a null command that creates an empty file
     # If successful (file didn't exist), proceed with installation
     # If failed (file already exists), skip installation
     if (set -C; : > "$first_run_flag") 2>/dev/null; then
