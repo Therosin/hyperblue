@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+set -oue pipefail
 # Copyright (C) 2025 Theros <https://github.com/therosin>
 #
 # This file is part of hyperblue.
@@ -14,10 +16,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with hyperblue.  If not, see <https://www.gnu.org/licenses/>.
-
-#!/usr/bin/env bash
-set -oue pipefail
-
 if ! command -v curl &>/dev/null; then
     error "curl is not installed. Please install curl and try again."
     exit 1

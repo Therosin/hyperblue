@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+set -oue pipefail
 # Copyright (C) 2025 Theros <https://github.com/therosin>
 #
 # This file is part of hyperblue.
