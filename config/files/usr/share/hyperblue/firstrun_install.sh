@@ -36,8 +36,7 @@ check_and_exec() {
 
     info "Executing: $script"
 
-    eval "$script"
-    if [[ $? -ne 0 ]]; then
+    if ! eval "$script"; then
         error "Failed to execute $script"
         exit 1
     fi
@@ -50,12 +49,17 @@ install_hyprland() {
     
     # Security: Download script to temp file and verify before execution
     local script_url="https://raw.githubusercontent.com/JaKooLit/Hyprland-Dots/main/Distro-Hyprland.sh"
-    local temp_script="/tmp/distro-hyprland-$$.sh"
+    local temp_script
+    temp_script=$(mktemp) || {
+        error "Failed to create temporary file"
+        exit 1
+    }
     
     # Expected SHA256 checksum of the script (update this when script changes)
     # To get checksum: curl -L <url> | sha256sum
+    # This is a placeholder - replace with actual checksum when ready to enable verification
     # shellcheck disable=SC2034
-    local expected_checksum="b2e6c8f5d8c9a3e7f1d4e0a8b6c2d9f3e5a1c7b4d8e2f6a9c3d5e7f1a4b8c2d6"
+    local expected_checksum=""
     
     info "Downloading Hyprland installation script..."
     if ! curl -fsSL "$script_url" -o "$temp_script"; then
@@ -77,9 +81,11 @@ install_hyprland() {
     #     exit 1
     # fi
     
-    warn "WARNING: Checksum verification is currently disabled."
-    warn "To enable it, update the expected_checksum variable with the current checksum:"
-    warn "  $actual_checksum"
+    if [[ -z "$expected_checksum" ]]; then
+        warn "WARNING: Checksum verification is currently disabled."
+        warn "To enable it, update the expected_checksum variable with the current checksum:"
+        warn "  $actual_checksum"
+    fi
     
     # Make script executable and run it
     chmod +x "$temp_script"
