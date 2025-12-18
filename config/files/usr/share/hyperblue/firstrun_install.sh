@@ -114,17 +114,19 @@ main() {
     local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hyperblue"
     local first_run_flag="${config_dir}/.firstrun_done"
 
-    if [[ -f "$first_run_flag" ]]; then
+    mkdir -p "$config_dir"
+
+    # Atomically create the flag file to prevent race conditions
+    # Using noclobber mode (set -C) ensures the file is created exclusively
+    # If the file already exists, this will fail and we'll skip installation
+    if (set -C; : > "$first_run_flag") 2>/dev/null; then
+        info "Starting first run installation for HyperBlue..."
+        install_hyprland
+        info "First run installation completed."
+    else
         warn "First run tasks already completed, skipping."
         exit 0
     fi
-
-    mkdir -p "$config_dir"
-
-    info "Starting first run installation for HyperBlue..."
-    install_hyprland
-    touch "$first_run_flag"
-    info "First run installation completed."
 }
 
 main "$@"
