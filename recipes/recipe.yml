@@ -28,78 +28,59 @@ modules:
       # base
       - openssh-server # ssh server
 
-      # terminal
-      - alacritty # minimal terminal
-      - micro # tui editor better than nano
+      # shell and terminal
       - zsh # shell
+      - kitty # terminal
 
       # audio
-      - pavucontrol
       - pipewire
-      - playerctl
       - wireplumber
+      - pavucontrol
+      - playerctl
 
       # bluetooth
+      - bluez
       - blueman
 
-      # network
-      - network-manager-applet
-      - NetworkManager-l2tp-gnome
-      - NetworkManager-libreswan-gnome
-      - NetworkManager-openconnect-gnome
-      - NetworkManager-openvpn-gnome
-      - NetworkManager-pptp-gnome
-      - NetworkManager-sstp-gnome
-      - NetworkManager-vpnc-gnome
-
-      # modern cli tools https://github.com/ibraheemdev/modern-unix
-      - duf
-      - eza
-      - fd-find
-      - httpie
-      - procs
-      - tldr
-
-      # hyprland
+      # hyprland desktop
       - hyprland
-      - hyprpaper # wallpaper util
-      - hyprpicker # color picker
-      - hyprshot # screenshot util
       - xdg-desktop-portal-hyprland # desktop portal
+      - waybar # status bar
+      - rofi-wayland # application launcher
+      - hyprlock # lock screen
+      - hypridle # idle management
+      - polkit-gnome # polkit agent
+      - wlogout # logout/powermenu
+      - cliphist # clipboard manager
+      - swaync # notification daemon
+      - nwg-look # gtk settings
+      - qt5ct # qt theming
+      - qt6ct # qt theming
+      - kvantum # qt theming
+      - wallust # color palette generator
+      - nwg-displays # monitor and workspace settings
+      - grim # screenshot
+      - slurp # screenshot region picker
+      - swappy # screenshot editor
+      - mpv # media player
+      - ImageMagick # image manipulation
+      - ags # aylur's gtk shell
+      - thunar # file manager
 
-      # qt
-      - qt5-qtwayland
-      - qt6-qtwayland
+      # fonts
+      - jetbrains-mono-fonts
+      - victor-mono-fonts
+      - fantasque-sans-mono-fonts
 
       # system utilities
-      - system-config-printer
-      - gnome-keyring-pam
-      - fprintd-pam
-      - lxqt-policykit
-      - pinentry-gnome3
       - brightnessctl
-      - plymouth-system-theme
       - wl-clipboard
 
-      # display manager
+      # login manager
       - sddm-wayland-generic
 
-      # zerotier
-      - zerotier-one
-
-      # Desktop environment
-      - waybar # status bar
-      - swaylock # lock screen
-      - dunst # notification daemon
-      - rofi-wayland # application launcher
-      - nautilus # file manager
-
-      # dev tools
-      - podman
-      - podman-compose
-
-      # other
-      - htop # system monitor
+      # misc
+      - pokemon-colorscripts
 
     # remove:
     #   - firefox # default firefox removed in favor of flatpak
