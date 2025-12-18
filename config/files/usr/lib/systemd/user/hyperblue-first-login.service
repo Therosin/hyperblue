@@ -1,8 +1,6 @@
 [Unit]
 Description=Run HyperBlue first-login setup
 ConditionPathExists=!%h/.config/hyperblue/.firstrun_done
-After=network-online.target
-Wants=network-online.target
 
 [Service]
 Type=oneshot

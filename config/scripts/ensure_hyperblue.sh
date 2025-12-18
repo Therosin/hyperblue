@@ -68,7 +68,6 @@ ensure_symlink() {
 
     log "Setting up hyperblue symlink at ${TARGET}."
     ln -s "${SOURCE}" "${TARGET}"
-    chmod +x "${TARGET}"
 }
 
 main() {
