@@ -1,6 +1,6 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
 # shellcheck disable=SC2181
-set -oue pipefail
+set -euo pipefail
 
 # First run installation script for HyperBlue.
 
@@ -105,10 +105,36 @@ install_hyprland() {
 
 
 
-info "Starting first run installation for HyperBlue..."
+main() {
+    if [[ $EUID -eq 0 ]]; then
+        error "This installer should be run as the logged-in user, not root."
+        exit 1
+    fi
 
-# ─── Installation ─────────────────────────────────────────────────────────────
-install_hyprland
+    local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hyperblue"
+    local first_run_flag="${config_dir}/.firstrun_done"
 
+    # Ensure config directory exists before attempting flag file creation
+    if ! mkdir -p "$config_dir"; then
+        error "Failed to create config directory: $config_dir"
+        exit 1
+    fi
 
-info "First run installation completed."
+    # If the first-run flag exists, assume installation has already completed
+    if [[ -f "$first_run_flag" ]]; then
+        warn "First run tasks already completed, skipping."
+        exit 0
+    fi
+
+    # Run first-time installation. The flag file will be created only after
+    # successful completion to avoid marking incomplete installations as done.
+    info "Starting first run installation for HyperBlue..."
+    install_hyprland
+    info "First run installation completed."
+
+    # Mark first run as completed. Using a simple redirection here is safe
+    # because we only reach this point if installation succeeded.
+    : > "$first_run_flag"
+}
+
+main "$@"

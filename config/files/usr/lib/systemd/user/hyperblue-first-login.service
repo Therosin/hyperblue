@@ -1,0 +1,10 @@
+[Unit]
+Description=Run HyperBlue first-login setup
+ConditionPathExists=!%h/.config/hyperblue/.firstrun_done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/share/hyperblue/firstrun_install.sh
+
+[Install]
+WantedBy=default.target
