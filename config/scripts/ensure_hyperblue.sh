@@ -20,6 +20,10 @@ set -euo pipefail
 
 readonly TARGET="/usr/bin/hyperblue"
 readonly SOURCE="/usr/share/hyperblue/hyperblue.sh"
+readonly FIRST_LOGIN_SERVICE="/usr/lib/systemd/user/hyperblue-first-login.service"
+readonly FIRST_LOGIN_SERVICE_NAME="hyperblue-first-login.service"
+readonly USER_WANTS_DIR="/usr/lib/systemd/user/default.target.wants"
+readonly FIRST_RUN_INSTALL_SCRIPT="/usr/share/hyperblue/firstrun_install.sh"
 
 log() {
     echo "[hyperblue] $*"
@@ -43,7 +47,7 @@ ensure_source_exists() {
 
     if [[ ! -x ${SOURCE} ]]; then
         log "Marking ${SOURCE} as executable."
-        chmod +x "${SOURCE}"
+        chmod +x "${SOURCE}" || fatal "Failed to mark ${SOURCE} as executable."
     fi
 }
 
@@ -70,12 +74,80 @@ ensure_symlink() {
     ln -s "${SOURCE}" "${TARGET}"
 }
 
+ensure_first_run_install_script() {
+    if [[ ! -f ${FIRST_RUN_INSTALL_SCRIPT} ]]; then
+        fatal "Expected first-run installer not found at ${FIRST_RUN_INSTALL_SCRIPT}."
+    fi
+
+    if [[ ! -x ${FIRST_RUN_INSTALL_SCRIPT} ]]; then
+        log "Marking ${FIRST_RUN_INSTALL_SCRIPT} as executable."
+        chmod +x "${FIRST_RUN_INSTALL_SCRIPT}" || fatal "Failed to mark ${FIRST_RUN_INSTALL_SCRIPT} as executable."
+    fi
+}
+
+ensure_first_login_service_file() {
+    if [[ ! -f ${FIRST_LOGIN_SERVICE} ]]; then
+        fatal "Expected user service not found at ${FIRST_LOGIN_SERVICE}."
+    fi
+
+    if [[ ! -r ${FIRST_LOGIN_SERVICE} ]]; then
+        fatal "User service at ${FIRST_LOGIN_SERVICE} is not readable."
+    fi
+}
+
+manual_enable_first_login_service() {
+    log "Falling back to manual enable of ${FIRST_LOGIN_SERVICE_NAME}."
+    mkdir -p "${USER_WANTS_DIR}" || fatal "Failed to create ${USER_WANTS_DIR}."
+    ln -sfn "../${FIRST_LOGIN_SERVICE_NAME}" "${USER_WANTS_DIR}/${FIRST_LOGIN_SERVICE_NAME}" || fatal "Failed to link ${FIRST_LOGIN_SERVICE_NAME} into ${USER_WANTS_DIR}."
+    log "Manual enable completed via ${USER_WANTS_DIR}/${FIRST_LOGIN_SERVICE_NAME}."
+}
+
+reload_user_units() {
+    if ! command -v systemctl >/dev/null 2>&1; then
+        log "systemctl not found; unable to reload user units automatically."
+        return
+    fi
+
+    if systemctl --global daemon-reload >/dev/null 2>&1; then
+        log "Reloaded global user units."
+        return
+    fi
+
+    if systemctl daemon-reload >/dev/null 2>&1; then
+        log "Reloaded systemd units with system-wide daemon-reload fallback."
+        return
+    fi
+
+    log "Warning: Unable to reload systemd units automatically; user sessions may need a manual reload."
+}
+
+enable_first_login_service() {
+    log "Ensuring ${FIRST_LOGIN_SERVICE_NAME} is enabled for all users..."
+
+    if command -v systemctl >/dev/null 2>&1; then
+        if systemctl --global enable "${FIRST_LOGIN_SERVICE_NAME}" >/dev/null 2>&1; then
+            log "${FIRST_LOGIN_SERVICE_NAME} enabled globally via systemctl."
+        else
+            log "systemctl --global enable failed."
+            manual_enable_first_login_service
+        fi
+    else
+        log "systemctl not available; enabling via manual symlink."
+        manual_enable_first_login_service
+    fi
+
+    reload_user_units
+}
+
 main() {
     log "Configuring hyperblue command..."
     require_root
     ensure_source_exists
     ensure_symlink
-    log "hyperblue command configured."
+    ensure_first_run_install_script
+    ensure_first_login_service_file
+    enable_first_login_service
+    log "hyperblue command configured and first-login installer enabled."
 }
 
 main "$@"
