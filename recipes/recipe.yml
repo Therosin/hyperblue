@@ -49,16 +49,15 @@ modules:
       - rofi-wayland # application launcher
       - hyprlock # lock screen
       - hypridle # idle management
-      - polkit-gnome # polkit agent
       - wlogout # logout/powermenu
       - cliphist # clipboard manager
       - swaync # notification daemon
       - nwg-look # gtk settings
       - qt5ct # qt theming
       - qt6ct # qt theming
+      - qt5-qtwayland # qt wayland support
+      - qt6-qtwayland # qt wayland support
       - kvantum # qt theming
-      - wallust # color palette generator
-      - nwg-displays # monitor and workspace settings
       - grim # screenshot
       - slurp # screenshot region picker
       - swappy # screenshot editor
@@ -69,8 +68,6 @@ modules:
 
       # fonts
       - jetbrains-mono-fonts
-      - victor-mono-fonts
-      - fantasque-sans-mono-fonts
 
       # system utilities
       - brightnessctl
@@ -80,7 +77,6 @@ modules:
       - sddm-wayland-generic
 
       # misc
-      - pokemon-colorscripts
 
     # remove:
     #   - firefox # default firefox removed in favor of flatpak
