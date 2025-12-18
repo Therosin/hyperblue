@@ -120,21 +120,21 @@ main() {
         exit 1
     fi
 
-    # Atomically create the flag file to prevent race conditions
-    # Using noclobber mode (set -C) ensures the file is created exclusively
-    # The colon (:) is a null command that creates an empty file
-    # If successful (file didn't exist), proceed with installation
-    # If failed (file already exists), skip installation
-    if (set -C; : > "$first_run_flag") 2>/dev/null; then
-        # File was created successfully - this is the first run
-        info "Starting first run installation for HyperBlue..."
-        install_hyprland
-        info "First run installation completed."
-    else
-        # File already exists - installation was already completed
+    # If the first-run flag exists, assume installation has already completed
+    if [[ -f "$first_run_flag" ]]; then
         warn "First run tasks already completed, skipping."
         exit 0
     fi
+
+    # Run first-time installation. The flag file will be created only after
+    # successful completion to avoid marking incomplete installations as done.
+    info "Starting first run installation for HyperBlue..."
+    install_hyprland
+    info "First run installation completed."
+
+    # Mark first run as completed. Using a simple redirection here is safe
+    # because we only reach this point if installation succeeded.
+    : > "$first_run_flag"
 }
 
 main "$@"
