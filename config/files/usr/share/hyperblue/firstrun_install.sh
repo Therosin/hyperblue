@@ -114,17 +114,27 @@ main() {
     local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hyperblue"
     local first_run_flag="${config_dir}/.firstrun_done"
 
+    # Ensure config directory exists before attempting flag file creation
+    if ! mkdir -p "$config_dir"; then
+        error "Failed to create config directory: $config_dir"
+        exit 1
+    fi
+
+    # If the first-run flag exists, assume installation has already completed
     if [[ -f "$first_run_flag" ]]; then
         warn "First run tasks already completed, skipping."
         exit 0
     fi
 
-    mkdir -p "$config_dir"
-
+    # Run first-time installation. The flag file will be created only after
+    # successful completion to avoid marking incomplete installations as done.
     info "Starting first run installation for HyperBlue..."
     install_hyprland
-    touch "$first_run_flag"
     info "First run installation completed."
+
+    # Mark first run as completed. Using a simple redirection here is safe
+    # because we only reach this point if installation succeeded.
+    : > "$first_run_flag"
 }
 
 main "$@"
