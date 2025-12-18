@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Copyright (C) 2025 Theros <https://github.com/therosin>
 #
 # This file is part of hyperblue.
@@ -14,13 +15,68 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with hyperblue.  If not, see <https://www.gnu.org/licenses/>.
-#!/bin/bash
 
-set -oue pipefail
+set -euo pipefail
 
-if [ ! -f "/usr/bin/hyperblue" ]; then
-    echo "Setup up hyperblue symlink..."
-    ln -s /usr/share/hyperblue/hyperblue /usr/bin/hyperblue
-    chmod +x /usr/bin/hyperblue
-fi
+readonly TARGET="/usr/bin/hyperblue"
+readonly SOURCE="/usr/share/hyperblue/hyperblue.sh"
 
+log() {
+    echo "[hyperblue] $*"
+}
+
+fatal() {
+    echo "[hyperblue] $*" >&2
+    exit 1
+}
+
+require_root() {
+    if [[ $EUID -ne 0 ]]; then
+        fatal "This script must be run as root so it can manage ${TARGET}."
+    fi
+}
+
+ensure_source_exists() {
+    if [[ ! -f ${SOURCE} ]]; then
+        fatal "Expected launcher script not found at ${SOURCE}."
+    fi
+
+    if [[ ! -x ${SOURCE} ]]; then
+        log "Marking ${SOURCE} as executable."
+        chmod +x "${SOURCE}"
+    fi
+}
+
+ensure_symlink() {
+    if [[ -L ${TARGET} ]]; then
+        local current_target
+        current_target=$(readlink -f "${TARGET}") || fatal "Failed to resolve ${TARGET}."
+
+        if [[ ${current_target} == ${SOURCE} ]]; then
+            log "hyperblue symlink already points to ${SOURCE}."
+            return 0
+        fi
+
+        log "Updating existing hyperblue symlink from ${current_target} to ${SOURCE}."
+        ln -sfn "${SOURCE}" "${TARGET}"
+        return 0
+    fi
+
+    if [[ -e ${TARGET} ]]; then
+        fatal "${TARGET} exists and is not a symlink; refusing to overwrite."
+    fi
+
+    log "Setting up hyperblue symlink at ${TARGET}."
+    ln -s "${SOURCE}" "${TARGET}"
+    chmod +x "${TARGET}"
+}
+
+main() {
+    log "Configuring hyperblue command..."
+    require_root
+    ensure_source_exists
+    ensure_symlink
+    log "hyperblue command configured."
+}
+
+main "$@"

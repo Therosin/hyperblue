@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 # shellcheck disable=SC2181
-set -oue pipefail
+set -euo pipefail
 
 # First run installation script for HyperBlue.
 
@@ -105,10 +105,26 @@ install_hyprland() {
 
 
 
-info "Starting first run installation for HyperBlue..."
+main() {
+    if [[ $EUID -eq 0 ]]; then
+        error "This installer should be run as the logged-in user, not root."
+        exit 1
+    fi
 
-# ─── Installation ─────────────────────────────────────────────────────────────
-install_hyprland
+    local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hyperblue"
+    local first_run_flag="${config_dir}/.firstrun_done"
 
+    if [[ -f "$first_run_flag" ]]; then
+        warn "First run tasks already completed, skipping."
+        exit 0
+    fi
 
-info "First run installation completed."
+    mkdir -p "$config_dir"
+
+    info "Starting first run installation for HyperBlue..."
+    install_hyprland
+    touch "$first_run_flag"
+    info "First run installation completed."
+}
+
+main "$@"
