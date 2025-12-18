@@ -139,3 +139,5 @@ install_luvit
 install_deno
 install_bun
 install_fnm
+install_pyenv
+info "Devtools installation complete."
