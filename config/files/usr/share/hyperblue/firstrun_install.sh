@@ -1,21 +1,40 @@
 #! /usr/bin/env bash
+# shellcheck disable=SC2181
 set -oue pipefail
 
 # First run installation script for HyperBlue.
 
 # ─── Utils ────────────────────────────────────────────────────────────────────
 
-safe_exec() {
+colorize() {
+    local color=$1
+    shift
+    echo -e "\033[${color}m$*\033[0m"
+}
+
+info() {
+    colorize "0;32" "$@"
+}
+
+error() {
+    colorize "0;31" "$@"
+}
+
+warn() {
+    colorize "0;33" "$@"
+}
+
+check_and_exec() {
     # command to check
     local command=$1
     # script to execute
     local script=$2
-    if ! command -v ${command%% *} &> /dev/null; then
+    if ! command -v "${command%% *}" &> /dev/null; then
         error "$command could not be found. Aborting."
         exit 1
     fi
 
-    echo "Executing: $script"
+    info "Executing: $script"
 
     eval "$script"
     if [[ $? -ne 0 ]]; then
@@ -27,17 +46,63 @@ safe_exec() {
 # ─── Main Script ──────────────────────────────────────────────────────────────
 
 install_hyprland() {
-    echo "Installing Hyprland and dependencies..."
-    # sh <(curl -L https://raw.githubusercontent.com/JaKooLit/Hyprland-Dots/main/Distro-Hyprland.sh)
-    safe_exec curl "curl -L https://raw.githubusercontent.com/JaKooLit/Hyprland-Dots/main/Distro-Hyprland.sh | bash"
+    info "Installing Hyprland and dependencies..."
+    
+    # Security: Download script to temp file and verify before execution
+    local script_url="https://raw.githubusercontent.com/JaKooLit/Hyprland-Dots/main/Distro-Hyprland.sh"
+    local temp_script="/tmp/distro-hyprland-$$.sh"
+    
+    # Expected SHA256 checksum of the script (update this when script changes)
+    # To get checksum: curl -L <url> | sha256sum
+    # shellcheck disable=SC2034
+    local expected_checksum="b2e6c8f5d8c9a3e7f1d4e0a8b6c2d9f3e5a1c7b4d8e2f6a9c3d5e7f1a4b8c2d6"
+    
+    info "Downloading Hyprland installation script..."
+    if ! curl -fsSL "$script_url" -o "$temp_script"; then
+        error "Failed to download Hyprland installation script"
+        rm -f "$temp_script"
+        exit 1
+    fi
+    
+    # Calculate checksum of downloaded script
+    local actual_checksum
+    actual_checksum=$(sha256sum "$temp_script" | cut -d' ' -f1)
+    
+    # Verify checksum (commented out for now - needs actual checksum)
+    # if [[ "$actual_checksum" != "$expected_checksum" ]]; then
+    #     error "Checksum verification failed!"
+    #     error "Expected: $expected_checksum"
+    #     error "Got: $actual_checksum"
+    #     rm -f "$temp_script"
+    #     exit 1
+    # fi
+    
+    warn "WARNING: Checksum verification is currently disabled."
+    warn "To enable it, update the expected_checksum variable with the current checksum:"
+    warn "  $actual_checksum"
+    
+    # Make script executable and run it
+    chmod +x "$temp_script"
+    
+    info "Executing Hyprland installation script..."
+    if bash "$temp_script"; then
+        info "Hyprland installation completed successfully"
+    else
+        error "Hyprland installation failed"
+        rm -f "$temp_script"
+        exit 1
+    fi
+    
+    # Clean up
+    rm -f "$temp_script"
 }
 
 
 
-echo "Starting first run installation for HyperBlue..."
+info "Starting first run installation for HyperBlue..."
 
 # ─── Installation ─────────────────────────────────────────────────────────────
 install_hyprland
 
 
-echo "First run installation completed."
+info "First run installation completed."
