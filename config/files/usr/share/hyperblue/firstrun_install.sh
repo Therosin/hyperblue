@@ -118,12 +118,15 @@ main() {
 
     # Atomically create the flag file to prevent race conditions
     # Using noclobber mode (set -C) ensures the file is created exclusively
-    # If the file already exists, this will fail and we'll skip installation
+    # If successful (file didn't exist), proceed with installation
+    # If failed (file already exists), skip installation
     if (set -C; : > "$first_run_flag") 2>/dev/null; then
+        # File was created successfully - this is the first run
         info "Starting first run installation for HyperBlue..."
         install_hyprland
         info "First run installation completed."
     else
+        # File already exists - installation was already completed
         warn "First run tasks already completed, skipping."
         exit 0
     fi
