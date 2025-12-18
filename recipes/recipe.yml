@@ -72,6 +72,7 @@ modules:
       # system utilities
       - brightnessctl
       - wl-clipboard
+      - zerotier-one
 
       # login manager
       - sddm-wayland-generic

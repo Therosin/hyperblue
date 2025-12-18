@@ -57,9 +57,7 @@ install_hyprland() {
     
     # Expected SHA256 checksum of the script (update this when script changes)
     # To get checksum: curl -L <url> | sha256sum
-    # This is a placeholder - replace with actual checksum when ready to enable verification
-    # shellcheck disable=SC2034
-    local expected_checksum=""
+    local expected_checksum="1630b03935cec67c5612285ccf349bda6a8d47a78509695d89f11c8a244ba081"
     
     info "Downloading Hyprland installation script..."
     if ! curl -fsSL "$script_url" -o "$temp_script"; then
@@ -72,19 +70,13 @@ install_hyprland() {
     local actual_checksum
     actual_checksum=$(sha256sum "$temp_script" | cut -d' ' -f1)
     
-    # Verify checksum (commented out for now - needs actual checksum)
-    # if [[ "$actual_checksum" != "$expected_checksum" ]]; then
-    #     error "Checksum verification failed!"
-    #     error "Expected: $expected_checksum"
-    #     error "Got: $actual_checksum"
-    #     rm -f "$temp_script"
-    #     exit 1
-    # fi
-    
-    if [[ -z "$expected_checksum" ]]; then
-        warn "WARNING: Checksum verification is currently disabled."
-        warn "To enable it, update the expected_checksum variable with the current checksum:"
-        warn "  $actual_checksum"
+    # Verify checksum
+    if [[ "$actual_checksum" != "$expected_checksum" ]]; then
+        error "Checksum verification failed!"
+        error "Expected: $expected_checksum"
+        error "Got: $actual_checksum"
+        rm -f "$temp_script"
+        exit 1
     fi
     
     # Make script executable and run it

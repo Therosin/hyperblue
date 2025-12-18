@@ -196,14 +196,14 @@ function set_permissions() {
     fi
     local permissions=${3:-755}
 
-    sudo -c "chown -R $owner $target"
+    sudo sh -c "chown -R $owner $target"
     # Check if the command was successful
     if [[ $? -ne 0 ]]; then
         error "Failed to set ownership for $target"
         exit 1
     fi
 
-    sudo -c "chmod -R $permissions $target"
+    sudo sh -c "chmod -R $permissions $target"
     # Check if the command was successful
     if [[ $? -ne 0 ]]; then
         error "Failed to set permissions for $target"
@@ -289,3 +289,9 @@ function install_litexl() {
 
     info "Lite XL version $version installed successfully."
 }
+
+main() {
+    install_litexl "$@"
+}
+
+main "$@"
