@@ -1,19 +1,5 @@
-# Copyright (C) 2025 Theros <https://github.com/therosin>
-#
-# This file is part of hyperblue.
-#
-# hyperblue is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# hyperblue is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with hyperblue.  If not, see <https://www.gnu.org/licenses/>.
+#!/usr/bin/env bash
+set -oue pipefail
 
 copy_user_configs() {
     echo "Ensure all users have new skeleton files from /etc/skel only if they do not have a .config/hyperblue directory."
