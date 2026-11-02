@@ -1,0 +1,15 @@
+[Unit]
+Description=Preselect the Hyprland session in SDDM on first boot
+Documentation=https://github.com/Therosin/hyperblue
+# SDDM preselects the session recorded in its state file, which lives in the
+# sddm user's home and therefore cannot be baked into an rpm-ostree image.
+After=local-fs.target
+Before=sddm.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/hyperblue/sddm-default-session
+
+[Install]
+WantedBy=multi-user.target

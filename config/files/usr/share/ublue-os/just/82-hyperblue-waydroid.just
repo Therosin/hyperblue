@@ -28,6 +28,10 @@ setup-waydroid ACTION="":
         sudo systemctl enable --now waydroid-container
       fi
       sudo waydroid init -c 'https://ota.waydro.id/system' -v 'https://ota.waydro.id/vendor'
+      # Relabel Waydroid's data, otherwise SELinux blocks the container on Fedora.
+      if command -v restorecon >/dev/null 2>&1; then
+        sudo restorecon -R /var/lib/waydroid
+      fi
       echo "Waydroid has been initialized, please run waydroid once before you Configure Waydroid"
     elif [[ "${OPTION,,}" =~ ^configure ]]; then
       git clone https://github.com/ublue-os/waydroid_script.git --depth 1 /tmp/waydroid_script
@@ -38,7 +42,12 @@ setup-waydroid ACTION="":
       deactivate
       sudo rm -rf /tmp/waydroid_script
     elif [[ "${OPTION,,}" =~ gpu ]]; then
-      sudo /usr/bin/waydroid-choose-gpu
+      if [ -x /usr/bin/waydroid-choose-gpu ]; then
+        sudo /usr/bin/waydroid-choose-gpu
+      else
+        echo "waydroid-choose-gpu is not shipped on this image."
+        echo "Run 'ujust setup-waydroid configure' and use the GPU options of the waydroid_script helper."
+      fi
     elif [[ "${OPTION,,}" =~ integration ]]; then
       waydroid prop set persist.waydroid.multi_windows true
     elif [[ "${OPTION,,}" =~ ^reset ]]; then
