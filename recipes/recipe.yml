@@ -1,4 +1,4 @@
-name: hyperblue
+1name: hyperblue
 description: Bluefin DX developer tooling on a Hyprland-first desktop with the Ambxst shell, keeping Bluefin's Waydroid support intact.
 base-image: ghcr.io/ublue-os/bluefin-dx
 image-version: 44
@@ -27,6 +27,7 @@ modules:
       packages:
         # Session, compositor, portal and polkit agent
         - hyprland
+        - noctalia-git
         - quickshell
         - xdg-desktop-portal-hyprland
         - xdg-desktop-portal-gtk
