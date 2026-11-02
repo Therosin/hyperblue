@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Hyperblue setup step: wire the Ambxst shell into this user's Hyprland config.
+#
+# Runs once per user (tracked by `hyperblue setup`). Idempotent and offline-safe,
+# so no `# hyperblue:needs-network` marker is declared.
+
+exec /usr/libexec/hyperblue/ambxst-session-start --integrate-only

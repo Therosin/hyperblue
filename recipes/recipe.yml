@@ -1,154 +1,138 @@
 name: hyperblue
-description: Custom image for bluefin-dx with waydroid, hyprland and essential development tools.
+description: Bluefin DX developer tooling on a Hyprland-first desktop with the Ambxst shell, keeping Bluefin's Waydroid support intact.
 base-image: ghcr.io/ublue-os/bluefin-dx
-image-version: 42
+image-version: 44
 
 modules:
-  ### Base ###
+  # Ship the Hyperblue CLI, the per-first-boot setup steps, the Ambxst
+  # installer and the system-wide Hyprland / SDDM / portal configuration.
   - type: files
     files:
       - source: usr
         destination: /usr
+      - source: etc
+        destination: /etc
 
-  - type: default-flatpaks
-    notify: true
-    system:
-      repo-url: https://dl.flathub.org/repo/flathub.flatpakrepo
-      repo-name: flathub
-      repo-title: "Flathub (system-wide)"
-      remove:
-        - org.gnome.eog
-      install:
-        # - one.ablaze.floorp//lightning # This is an example of flatpak which has multiple branches in selection (flatpak//branch).
-        - app.devsuite.Ptyxis
-        - com.github.tchx84.Flatseal
-        - com.protonvpn.www
-        - me.proton.Pass
-        - me.proton.Mail
-        - re.sonny.Junction
-
-  - type: bling # configure what to pull in from ublue-os/bling
+  - type: bling
     install:
-      # - ublue-update # https://github.com/ublue-os/ublue-update
-      - ublue-os-wallpapers
       - dconf-update-service
-      - rpmfusion
-      - justfiles # add "!include /usr/share/ublue-os/just/100-bling.just"
-        # in your custom.just (added by default) or local justfile
-      - nix-installer # shell shortcuts for determinate system's nix installers
-      - devpod # https://devpod.sh/ as an rpm
-      # - laptop # installs TLP and configures your system for laptop usage
-      # - flatpaksync # allows synchronization of user-installed flatpaks, see separate documentation section
 
-  - type: rpm-ostree
+  # Hyprland and Quickshell are not in Fedora. This module is the strict one:
+  # everything listed here must resolve, or the image has no usable session.
+  - type: dnf
     repos:
-      - https://copr.fedorainfracloud.org/coprs/solopasha/hyprland/repo/fedora-42/solopasha-hyprland-fedora-42.repo
+      copr:
+        - lionheartp/Hyprland
     install:
-      # hyprland
-      - hyprland
-      - hyprpaper # wallpaper util
-      - hyprpicker # color picker
-      - hyprshot # screenshot util
-      - xdg-desktop-portal-hyprland # desktop portal
-
-      # audio
-      - pavucontrol
-      - pipewire
-      - playerctl
-      - wireplumber
-
-      # bluetooth
-      - blueman
-
-      # terminal
-      - alacritty # terminal
-      - micro # tui editor better than nano
-      - zsh # shell
-
-      # modern cli tools https://github.com/ibraheemdev/modern-unix
-      - duf
-      - eza
-      - fd-find
-      - httpie
-      - procs
-      - tldr
-
-      # network
-      - network-manager-applet
-      - NetworkManager-l2tp-gnome
-      - NetworkManager-libreswan-gnome
-      - NetworkManager-openconnect-gnome
-      - NetworkManager-openvpn-gnome
-      - NetworkManager-pptp-gnome
-      - NetworkManager-sstp-gnome
-      - NetworkManager-vpnc-gnome
-
-      # qt
-      - qt5-qtwayland
-      - qt6-qtwayland
-
-      # dev tools
-      - podman
-      - podman-compose
-      - podman-docker # symlinks docker to podman
-      - visual-studio-code-bin # vscode
-      - visual-studio-code-bin-extensions # vscode extensions
-
-      # zerotier
-      - zerotier-one
-
-      # wayland
-      - waydroid
-
-      # other
-      - htop
-      - bolt
-      - brightnessctl
-      - dunst # notification daemon
-      - fprintd-pam
-      - gnome-keyring-pam
-      - lxqt-policykit
-      - nautilus
-      - pinentry-gnome3
-      - plymouth-system-theme
-      - rofi-wayland
-      - sddm-wayland-generic # display manager
-      - system-config-printer
-      - waybar
-      - wl-clipboard
+      packages:
+        # Session, compositor, portal and polkit agent
+        - hyprland
+        - quickshell
+        - xdg-desktop-portal-hyprland
+        - xdg-desktop-portal-gtk
+        - hyprpolkitagent
+        # Login manager and the X11 bits SDDM needs for DisplayServer=x11
+        - sddm
+        - xorg-x11-server-Xorg
+        - xorg-x11-server-Xwayland
+        # Minimum usable desktop: terminal, files, audio, network, bluetooth
+        - alacritty
+        - Thunar
+        - gvfs
+        - gvfs-mtp
+        - pavucontrol
+        - network-manager-applet
+        - nm-connection-editor
+        - blueman
+        - gnome-keyring-pam
+        - unzip
+        # Binder support is built into the Fedora kernel Bluefin ships
+        # (CONFIG_ANDROID_BINDERFS=y), so no kmod or kernel swap is needed.
+        # Initialisation stays an explicit user action: `ujust setup-waydroid`.
+        - waydroid
     remove:
-      - firefox # default firefox removed in favor of flatpak
-      - firefox-langpacks # langpacks needs to also be removed to prevent dependency problems
+      # SDDM replaces GDM. auto-remove is off on purpose so the Bluefin DX
+      # package set stays installed instead of cascading out of gnome-shell.
+      auto-remove: false
+      packages:
+        - gdm
+
+  # Long tail for the Ambxst shell. skip-unavailable keeps an upstream package
+  # rename from breaking the whole image; nothing here is session-critical.
+  - type: dnf
+    install:
+      skip-unavailable: true
+      packages:
+        - matugen
+        - fuzzel
+        - tmux
+        - jq
+        - wtype
+        - wl-clipboard
+        - brightnessctl
+        - ddcutil
+        - upower
+        - power-profiles-daemon
+        - wlsunset
+        - playerctl
+        - easyeffects
+        - libnotify
+        - zenity
+        - adw-gtk3-theme
+        - kf6-syntax-highlighting
+        - kf6-breeze-icons
+        - hicolor-icon-theme
+        - qt6-qtbase
+        - qt6-qtdeclarative
+        - qt6-qtwayland
+        - qt6-qtsvg
+        - qt6-qttools
+        - qt6-qtimageformats
+        - qt6-qtmultimedia
+        - qt6-qtshadertools
+        - qt5-qtwayland
+        - tesseract
+        - tesseract-langpack-eng
+        - tesseract-langpack-spa
+        - tesseract-langpack-jpn
+        - tesseract-langpack-chi_sim
+        - tesseract-langpack-chi_tra
+        - tesseract-langpack-kor
+        - tesseract-langpack-lat
+        - google-roboto-fonts
+        - google-roboto-mono-fonts
+        - google-noto-fonts-common
+        - google-noto-sans-cjk-fonts
+        - google-noto-emoji-fonts
+        - dejavu-sans-fonts
+        - liberation-sans-fonts
+        - gstreamer1
+        - gstreamer1-plugins-base
+        - gstreamer1-plugins-good
+        - gstreamer1-plugins-bad-free
+        - gstreamer1-plugin-libav
+
+  # Ambxst ships an installer that refuses to run as root, and it would put the
+  # shell in a user's home anyway. Ours installs the same release system-wide.
+  - type: script
+    snippets:
+      - "chmod 0755 /usr/bin/hyperblue /usr/libexec/hyperblue/install-ambxst /usr/libexec/hyperblue/ambxst-session-start /usr/libexec/hyperblue/sddm-default-session"
+      - "chmod 0755 /usr/libexec/hyperblue/setup.d/*"
+      - "bash /usr/libexec/hyperblue/install-ambxst"
 
   - type: systemd
     system:
       enabled:
-        - zerotier-one.service
+        - sddm-default-session.service
+        - sddm.service
+        - waydroid-workaround.service
     user:
+      # Runs `hyperblue setup` once per user, after login and with network.
       enabled:
-        - sshd.service
-        - podman.service
+        - hyperblue-setup.service
 
-  # enable linuxbrew
   - type: brew
-    nofile-limits: true # increase nofile limits
-    brew-analytics: false # disable telemetry
+    nofile-limits: true
+    brew-analytics: false
 
-  - type:
-      yafti
-      # if included, yafti and it's dependencies (pip & libadwaita)
-      #  will be installed and set up
-    custom-flatpaks:
-      # this section is optional
-      # - Celluloid: io.github.celluloid_player.Celluloid
-      # - Krita: org.kde.krita
-
-  ### Extras ###
-
-  # run scripts
-  - type: script
-    scripts: # scripts in config/scripts/
-      - install_extras.sh
-
-  # sign images.
-  - type: signing # this sets up the proper policy & signing files for signed images to work fully
+  - type: signing

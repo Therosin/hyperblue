@@ -1,0 +1,298 @@
+#!/usr/bin/env bash
+# hyperblue - per-user setup, update and repair for the Hyperblue image.
+#
+# Everything that can be baked into the image (desktop packages, configuration
+# files, systemd units) is installed at build time. This command only performs
+# work that cannot happen during the image build: per-user, first-login
+# integration steps that live in /usr/libexec/hyperblue/setup.d.
+#
+# Steps are idempotent, ordered by filename, and tracked in
+# $XDG_STATE_HOME/hyperblue/setup so a failed run is retried and a finished one
+# is never repeated. A step that needs network declares it in its header:
+#
+#   # hyperblue:needs-network
+
+set -uo pipefail
+
+CLI_VERSION="1.0.0"
+STEP_DIR="${HYPERBLUE_STEP_DIR:-/usr/libexec/hyperblue/setup.d}"
+STATE_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/hyperblue"
+SETUP_STATE="$STATE_ROOT/setup"
+COMPLETE_MARKER="$SETUP_STATE/.complete"
+NET_TIMEOUT="${HYPERBLUE_NET_TIMEOUT:-180}"
+NET_PROBE_URL="${HYPERBLUE_NET_PROBE_URL:-https://fedoraproject.org/static/hotspot.txt}"
+
+# EX_TEMPFAIL: transient condition (no network yet); the caller should retry.
+EX_TEMPFAIL=75
+
+if [[ -t 1 ]]; then
+    BOLD=$'\e[1m' RED=$'\e[31m' YELLOW=$'\e[33m' GREEN=$'\e[32m' NORMAL=$'\e[0m'
+else
+    BOLD='' RED='' YELLOW='' GREEN='' NORMAL=''
+fi
+
+info() { printf '%s\n' "$*"; }
+warn() { printf '%s%s%s\n' "$YELLOW" "$*" "$NORMAL" >&2; }
+err() { printf '%s%s%s\n' "$RED" "$*" "$NORMAL" >&2; }
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+usage() {
+    cat <<EOF
+${BOLD}hyperblue${NORMAL} ${CLI_VERSION} - Hyperblue per-user setup and maintenance
+
+Usage: hyperblue <command> [options]
+
+Commands:
+  setup            Run pending first-run setup steps (run once per user)
+  update           Re-run steps after the image was updated or rebased
+  fix [--only S]   Re-run setup steps even if they are already recorded as done
+  status           Show image version, setup state and step results
+  version          Show the image and CLI version
+  help             Show this help
+
+Options for setup/update/fix:
+  --auto             Non-interactive; do nothing if setup already completed
+  --force            Re-run the selected steps regardless of recorded state
+  --only STEP        Limit the run to a single step (prefix match)
+  --list             List available setup steps and exit
+  --no-wait          Do not wait for network connectivity before running
+  -h, --help         Show this help
+
+State lives in \$XDG_STATE_HOME/hyperblue (default ~/.local/state/hyperblue).
+Steps live in $STEP_DIR.
+
+Everything else ships inside the image: Hyprland, the Ambxst shell, the SDDM
+greeter and Bluefin's Waydroid integration all come preinstalled. Waydroid is
+initialised explicitly with 'ujust setup-waydroid', not from this command.
+EOF
+}
+
+image_version() {
+    local value=''
+    if [[ -r /usr/lib/os-release ]]; then
+        value="$(set +u; . /usr/lib/os-release >/dev/null 2>&1; printf '%s' "${IMAGE_VERSION:-${VERSION_ID:-unknown}}")"
+    fi
+    printf '%s' "${value:-unknown}"
+}
+
+network_available() {
+    if have curl; then
+        curl -fsS --max-time 10 -o /dev/null "$NET_PROBE_URL" 2>/dev/null
+        return
+    fi
+    if have nm-online; then
+        nm-online -q -t 10 >/dev/null 2>&1
+        return
+    fi
+    # No way to probe: assume connectivity rather than blocking forever.
+    return 0
+}
+
+wait_for_network() {
+    local deadline=$((SECONDS + NET_TIMEOUT))
+    info "Waiting for network connectivity (up to ${NET_TIMEOUT}s)..."
+    while ((SECONDS < deadline)); do
+        network_available && return 0
+        sleep 5
+    done
+    return 1
+}
+
+list_steps() {
+    [[ -d $STEP_DIR ]] || return 0
+    find "$STEP_DIR" -maxdepth 1 -type f -name '[0-9]*-*' -printf '%f\n' 2>/dev/null | sort
+}
+
+step_needs_network() {
+    grep -qi '^# *hyperblue:needs-network' "$STEP_DIR/$1" 2>/dev/null
+}
+
+step_state() {
+    local file="$SETUP_STATE/$1.state"
+    [[ -r $file ]] && head -n 1 "$file"
+}
+
+step_status() {
+    local state
+    state="$(step_state "$1")"
+    printf '%s' "${state%% *}"
+}
+
+step_done() { [[ "$(step_status "$1")" == ok ]]; }
+
+step_current() {
+    local state status recorded
+    state="$(step_state "$1")"
+    [[ -n $state ]] || return 1
+    read -r status recorded _ <<<"$state"
+    [[ $status == ok && $recorded == "$(image_version)" ]]
+}
+
+record_step() {
+    local step=$1 status=$2
+    mkdir -p "$SETUP_STATE" || return 1
+    printf '%s %s %s\n' "$status" "$(image_version)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        >"$SETUP_STATE/$step.state.tmp" && mv -f "$SETUP_STATE/$step.state.tmp" "$SETUP_STATE/$step.state"
+}
+
+run_step() {
+    local step=$1 path="$STEP_DIR/$1"
+    info "${BOLD}==> ${step}${NORMAL}"
+    [[ -f $path ]] || { err "missing setup step: $path"; return 1; }
+    if [[ -x $path ]]; then
+        "$path"
+    else
+        bash "$path"
+    fi
+}
+
+# setup_run MODE [options]   where MODE is "once", "revalidate" or "force"
+setup_run() {
+    local mode=$1
+    shift
+    local auto=0 wait_net=1 only=''
+
+    while (($#)); do
+        case $1 in
+            --auto) auto=1 ;;
+            --force) mode=force ;;
+            --only)
+                shift
+                only=${1:-}
+                [[ -n $only ]] || { err "--only requires a step name"; return 2; }
+                ;;
+            --list) list_steps; return 0 ;;
+            --no-wait|--no-network-wait) wait_net=0 ;;
+            -h|--help) usage; return 0 ;;
+            *) err "unknown option: $1"; return 2 ;;
+        esac
+        shift
+    done
+
+    mkdir -p "$SETUP_STATE"
+
+    if ((auto)) && [[ -f $COMPLETE_MARKER ]]; then
+        return 0
+    fi
+
+    local pending=() step
+    while IFS= read -r step; do
+        [[ -n $step ]] || continue
+        [[ -n $only && $step != "$only"* ]] && continue
+        case $mode in
+            force) pending+=("$step") ;;
+            revalidate) step_current "$step" || pending+=("$step") ;;
+            *) step_done "$step" || pending+=("$step") ;;
+        esac
+    done < <(list_steps)
+
+    if ((${#pending[@]} == 0)); then
+        info "Nothing to do."
+        touch "$COMPLETE_MARKER"
+        return 0
+    fi
+
+    local needs_network=0
+    for step in "${pending[@]}"; do
+        step_needs_network "$step" && needs_network=1
+    done
+
+    if ((needs_network && wait_net)); then
+        if ! wait_for_network; then
+            warn "No network connectivity; will retry later."
+            rm -f "$COMPLETE_MARKER"
+            return $EX_TEMPFAIL
+        fi
+    fi
+
+    local failed=0
+    for step in "${pending[@]}"; do
+        if run_step "$step"; then
+            record_step "$step" ok
+        else
+            local rc=$?
+            err "step failed: $step (exit $rc)"
+            record_step "$step" failed
+            failed=1
+        fi
+    done
+
+    if ((failed)); then
+        rm -f "$COMPLETE_MARKER"
+        return 1
+    fi
+
+    touch "$COMPLETE_MARKER"
+    info "${GREEN}Setup complete.${NORMAL}"
+    return 0
+}
+
+cmd_setup() { setup_run once "$@"; }
+cmd_update() { setup_run revalidate "$@"; }
+
+cmd_fix() {
+    rm -f "$SETUP_STATE"/*.state "$COMPLETE_MARKER" 2>/dev/null
+    setup_run force "$@"
+}
+
+cmd_status() {
+    info "${BOLD}Hyperblue status${NORMAL}"
+    info "  image version : $(image_version)"
+    info "  cli version   : $CLI_VERSION"
+    info "  shell         : ${AMBXST_SHELL:-/usr/share/ambxst}"
+
+    if network_available; then
+        info "  network       : available"
+    else
+        info "  network       : unavailable"
+    fi
+
+    if [[ -f $COMPLETE_MARKER ]]; then
+        info "  first-run     : complete"
+    else
+        info "  first-run     : pending (run 'hyperblue setup')"
+    fi
+
+    info "  waydroid      : $(if rpm -q waydroid >/dev/null 2>&1; then echo installed; else echo 'not installed'; fi)"
+
+    info "  steps ($STEP_DIR):"
+    local step found=0
+    while IFS= read -r step; do
+        [[ -n $step ]] || continue
+        found=1
+        local state status recorded
+        state="$(step_state "$step")"
+        if [[ -z $state ]]; then
+            info "    - $step"
+        else
+            read -r status recorded _ <<<"$state"
+            info "    - $step: $status (image $recorded)"
+        fi
+    done < <(list_steps)
+    ((found)) || info "    (none)"
+}
+
+cmd_version() {
+    info "hyperblue $CLI_VERSION (image $(image_version))"
+}
+
+main() {
+    local cmd=${1:-help}
+    (($#)) && shift
+    case $cmd in
+        setup) cmd_setup "$@" ;;
+        update) cmd_update "$@" ;;
+        fix) cmd_fix "$@" ;;
+        status) cmd_status "$@" ;;
+        version|--version|-V) cmd_version ;;
+        help|--help|-h) usage ;;
+        *)
+            err "unknown command: $cmd"
+            usage >&2
+            return 2
+            ;;
+    esac
+}
+
+main "$@"

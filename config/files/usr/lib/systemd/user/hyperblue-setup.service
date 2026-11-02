@@ -1,0 +1,21 @@
+[Unit]
+Description=Hyperblue first-run setup
+Documentation=https://github.com/Therosin/hyperblue
+ConditionPathExists=/usr/bin/hyperblue
+# Do not hammer failing steps: give up for this session after five attempts.
+StartLimitIntervalSec=30min
+StartLimitBurst=5
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/hyperblue setup --auto
+# Steps that could not run yet (no network, session not ready) are retried, and
+# the CLI itself returns 75 for transient failures. Finished steps are recorded
+# in ~/.local/state/hyperblue, so a rerun only touches what is still pending.
+Restart=on-failure
+RestartSec=2min
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=default.target

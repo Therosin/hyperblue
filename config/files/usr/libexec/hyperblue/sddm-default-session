@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Seed SDDM's state file so the Hyprland session is preselected in the greeter.
+#
+# SDDM records the last chosen session in <sddm home>/state.conf and preselects
+# it. That file cannot ship inside an rpm-ostree image (it lives in /var), so it
+# is created once on first boot. SDDM's RememberLastSession keeps it current
+# afterwards, and an existing file is never overwritten.
+
+set -uo pipefail
+
+home="$(getent passwd sddm | cut -d: -f6)"
+[[ -n $home ]] || home=/var/lib/sddm
+state="$home/state.conf"
+
+[[ -f $state ]] && exit 0
+
+[[ -d $home ]] || install -d -o sddm -g sddm -m 0750 "$home"
+
+printf '[Last]\nSession=hyprland\n' >"$state"
+chmod 0644 "$state"

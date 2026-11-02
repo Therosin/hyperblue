@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# Build-time installation of the Ambxst shell (https://axeni.de/ambxst/).
+#
+# Mirrors the Fedora branch of Ambxst's own installer, adapted for an
+# rpm-ostree image: everything lands in /usr (read-only and versioned) instead
+# of $HOME, packages come from the image recipe, and no service is started.
+#
+# Run by the recipe's `script` module during the image build.
+
+set -euo pipefail
+
+AMBXST_VERSION="1.3.14"
+AMBXST_TARBALL_SHA256="564ebcc8492cc16f303e6d09c4f5a0040ab9061da7ad24a019248be7a5e63bd4d"
+PHOSPHOR_VERSION="2.1.2"
+SHELL_DIR="/usr/share/ambxst"
+
+case "$(uname -m)" in
+    x86_64)
+        AMBXST_ARCH="amd64"
+        AMBXST_BIN_SHA256="fb6e89581df31de19a8a14e841e582e07e88ab7d855409dd4329fd0b4d84cf7c"
+        ;;
+    aarch64)
+        AMBXST_ARCH="arm64"
+        AMBXST_BIN_SHA256="afbb4dd4cdf7f9e3c46fe1e4d82ffdbb94fc939a441a1c3984fa9a0d779d0ab8"
+        ;;
+    *)
+        echo "unsupported architecture: $(uname -m)" >&2
+        exit 1
+        ;;
+esac
+
+workdir="$(mktemp -d)"
+trap 'rm -rf "$workdir"' EXIT
+
+fetch() {
+    curl -fsSL --retry 3 --retry-delay 5 -o "$2" "$1"
+}
+
+verify_sha256() {
+    local file=$1 expected=$2
+    if ! printf '%s  %s\n' "$expected" "$file" | sha256sum -c --status -; then
+        echo "checksum mismatch: $file" >&2
+        exit 1
+    fi
+}
+
+echo "Installing Ambxst ${AMBXST_VERSION} (${AMBXST_ARCH}) shell sources to ${SHELL_DIR}"
+
+fetch "https://codeload.github.com/Axenide/Ambxst/tar.gz/refs/tags/${AMBXST_VERSION}" \
+    "$workdir/ambxst.tar.gz"
+verify_sha256 "$workdir/ambxst.tar.gz" "$AMBXST_TARBALL_SHA256"
+
+tar -xzf "$workdir/ambxst.tar.gz" -C "$workdir"
+src="$workdir/Ambxst-${AMBXST_VERSION}"
+if [[ ! -f "$src/shell.qml" ]]; then
+    echo "unexpected Ambxst tarball layout: shell.qml not found" >&2
+    exit 1
+fi
+
+install -d -m 0755 "$SHELL_DIR"
+for entry in shell.qml modules assets translations version LICENSE; do
+    if [[ -e "$src/$entry" ]]; then
+        cp -a "$src/$entry" "$SHELL_DIR/"
+    fi
+done
+
+echo "Installing Ambxst ${AMBXST_VERSION} binary"
+fetch "https://github.com/Axenide/Ambxst/releases/download/${AMBXST_VERSION}/ambxst-linux-${AMBXST_ARCH}" \
+    "$workdir/ambxst"
+verify_sha256 "$workdir/ambxst" "$AMBXST_BIN_SHA256"
+install -D -m 0755 "$workdir/ambxst" /usr/libexec/ambxst/ambxst
+
+cat >/usr/bin/ambxst <<'WRAPPER'
+#!/bin/sh
+# Launch the Ambxst shell that ships in this image.
+export AMBXST_SHELL="${AMBXST_SHELL:-/usr/share/ambxst}"
+exec /usr/libexec/ambxst/ambxst "$@"
+WRAPPER
+chmod 0755 /usr/bin/ambxst
+
+# ambxst:// URL handler.
+if [[ -f "$src/assets/ambxst/ambxst-mod-handler.desktop" ]]; then
+    install -D -m 0644 "$src/assets/ambxst/ambxst-mod-handler.desktop" \
+        /usr/share/applications/ambxst-mod-handler.desktop
+fi
+
+echo "Installing Phosphor icon font ${PHOSPHOR_VERSION}"
+fetch "https://github.com/phosphor-icons/web/archive/refs/tags/v${PHOSPHOR_VERSION}.zip" \
+    "$workdir/phosphor.zip"
+mkdir -p "$workdir/phosphor"
+unzip -q -o "$workdir/phosphor.zip" -d "$workdir/phosphor"
+install -d -m 0755 /usr/share/fonts/phosphor
+find "$workdir/phosphor" -name '*.ttf' -exec install -m 0644 {} /usr/share/fonts/phosphor/ \;
+fc-cache -f >/dev/null 2>&1 || true
+
+printf '%s\n' "$AMBXST_VERSION" >"$SHELL_DIR/INSTALLED_VERSION"
+
+echo "Ambxst ${AMBXST_VERSION} installed"
