@@ -37,6 +37,8 @@ modules:
         - xorg-x11-server-Xwayland
         # Minimum usable desktop: terminal, files, audio, network, bluetooth
         - alacritty
+        # Bluefin's container-oriented terminal; kept as the default terminal.
+        - ptyxis
         - Thunar
         - gvfs
         - gvfs-mtp
@@ -72,7 +74,9 @@ modules:
         - brightnessctl
         - ddcutil
         - upower
-        - power-profiles-daemon
+        # Power profiles come from tuned-ppd, which the base image already
+        # installs; requesting power-profiles-daemon aborts the transaction
+        # because both provide ppd-service.
         - wlsunset
         - playerctl
         - easyeffects

@@ -58,7 +58,9 @@ if [[ ! -f "$src/shell.qml" ]]; then
 fi
 
 install -d -m 0755 "$SHELL_DIR"
-for entry in shell.qml modules assets translations version LICENSE; do
+# shell.qml and its modules import `qs.config` and reference `scripts/`, so
+# both trees are part of the runtime shell and have to ship with it.
+for entry in shell.qml modules config scripts assets translations version LICENSE; do
     if [[ -e "$src/$entry" ]]; then
         cp -a "$src/$entry" "$SHELL_DIR/"
     fi
