@@ -22,6 +22,23 @@ COMPLETE_MARKER="$SETUP_STATE/.complete"
 NET_TIMEOUT="${HYPERBLUE_NET_TIMEOUT:-180}"
 NET_PROBE_URL="${HYPERBLUE_NET_PROBE_URL:-https://fedoraproject.org/static/hotspot.txt}"
 
+# Per-user install target for `hyperblue install`. ~/.local/bin is on PATH for
+# login shells on Fedora, and ~/.local/share/lite-xl is picked up automatically
+# by a Lite XL binary living in ~/.local/bin.
+INSTALL_ROOT="${HYPERBLUE_INSTALL_ROOT:-$HOME/.local}"
+BIN_DIR="$INSTALL_ROOT/bin"
+LITE_XL_DATA="$INSTALL_ROOT/share/lite-xl"
+LITE_XL_REPO="lite-xl/lite-xl"
+UV_VERSION="0.13.6"
+BUN_VERSION="1.4.4"
+DENO_VERSION="2.9.8"
+FNM_VERSION="1.39.0"
+PYENV_VERSION="v2.8.14"
+LUAVER_VERSION="v1.1.0"
+LUAVER_URL="https://raw.githubusercontent.com/DhavalKapil/luaver/$LUAVER_VERSION"
+LUAVER_SHA256="5b0bff3f7ce4607ad3a271034f778511aee7070ce48939e42a6579982c68e20f"
+LUAVER_COMPLETIONS_SHA256="3929a3d2db48f4b0f8ecc9fe4a354ec07314960f5bec428c1e44ed873271e25f"
+
 # EX_TEMPFAIL: transient condition (no network yet); the caller should retry.
 EX_TEMPFAIL=75
 
@@ -47,6 +64,7 @@ Commands:
   setup            Run pending first-run setup steps (run once per user)
   update           Re-run steps after the image was updated or rebased
   fix [--only S]   Re-run setup steps even if they are already recorded as done
+  install [NAME..] Install per-user developer tools into ~/.local (see below)
   status           Show image version, setup state and step results
   version          Show the image and CLI version
   help             Show this help
@@ -58,6 +76,18 @@ Options for setup/update/fix:
   --list             List available setup steps and exit
   --no-wait          Do not wait for network connectivity before running
   -h, --help         Show this help
+
+Options for install:
+  --list             List the tools this command can install
+  lite-xl            Lite XL editor in ~/.local/share/lite-xl, on PATH via
+                     ~/.local/bin, plugin manager (lpm) registration included
+  uv                 Astral's Python toolchain
+  bun                Bun JavaScript runtime
+  deno               Deno runtime
+  fnm                Fast Node Manager
+  pyenv              Python version manager, with pyenv-virtualenv
+  luaver             Lua/LuaJIT/LuaRocks version manager
+  With no NAME, every tool above is installed. Installed tools are skipped.
 
 State lives in \$XDG_STATE_HOME/hyperblue (default ~/.local/state/hyperblue).
 Steps live in $STEP_DIR.
@@ -233,6 +263,325 @@ cmd_fix() {
     setup_run force "$@"
 }
 
+## Per-user tool installation ------------------------------------------------
+#
+# Everything here writes under ~/.local and is safe to re-run: a tool that is
+# already present is skipped, and every download is verified against a pinned
+# SHA-256 so a moved or compromised release fails instead of installing.
+
+machine_arch() {
+    case "$(uname -m)" in
+        x86_64) printf 'x86_64' ;;
+        aarch64) printf 'aarch64' ;;
+        *) return 1 ;;
+    esac
+}
+
+fetch_verified() {
+    local url=$1 sha256=$2 dest=$3
+    if ! curl -fsSL --retry 3 --retry-delay 5 -o "$dest" "$url"; then
+        err "download failed: $url"
+        return 1
+    fi
+    if ! printf '%s  %s\n' "$sha256" "$dest" | sha256sum -c --quiet -; then
+        err "checksum mismatch for $url"
+        return 1
+    fi
+}
+
+install_lite_xl() (
+    local arch version url tmp
+    arch=$(machine_arch) || { err "lite-xl: unsupported architecture"; return 1; }
+
+    if [[ -x $BIN_DIR/lite-xl && -r $LITE_XL_DATA/data/core/start.lua ]]; then
+        info "lite-xl: already installed in $LITE_XL_DATA"
+        return 0
+    fi
+
+    if ! have jq; then
+        err "lite-xl: jq is required to resolve the latest release"
+        return 1
+    fi
+    version=$(curl -fsSL "https://api.github.com/repos/$LITE_XL_REPO/releases/latest" |
+        jq -r '.tag_name // empty') || version=''
+    if [[ -z $version ]]; then
+        err "lite-xl: could not determine the latest release"
+        return 1
+    fi
+    version=${version#v}
+
+    # The portable tarball carries the binary plus its data directory, and is
+    # the only asset GitHub publishes that lpm can consume for every arch.
+    url="https://github.com/$LITE_XL_REPO/releases/download/v$version/lite-xl-v$version-addons-linux-$arch-portable.tar.gz"
+
+    tmp=$(mktemp -d)
+    trap 'rm -rf "${tmp:-}"' RETURN
+    info "lite-xl: downloading $version"
+    if ! curl -fsSL --retry 3 --retry-delay 5 -o "$tmp/lite-xl.tar.gz" "$url"; then
+        err "lite-xl: download failed: $url"
+        return 1
+    fi
+
+    mkdir -p "$LITE_XL_DATA"
+    if ! tar -xzf "$tmp/lite-xl.tar.gz" -C "$tmp"; then
+        err "lite-xl: could not extract $url"
+        return 1
+    fi
+    # Keep the portable layout: <share>/lite-xl/lite-xl next to <share>/lite-xl/data,
+    # which is where a binary in <prefix>/bin looks for its data directory.
+    cp -a "$tmp/lite-xl/data" "$LITE_XL_DATA/data"
+    install -D -m 0755 "$tmp/lite-xl/lite-xl" "$LITE_XL_DATA/lite-xl"
+
+    mkdir -p "$BIN_DIR"
+    ln -sfn "$LITE_XL_DATA/lite-xl" "$BIN_DIR/lite-xl"
+
+    if have lpm; then
+        # Register the copy so `lpm install <addon>` targets it. This needs
+        # network on first use while lpm fetches its repositories.
+        lpm lite-xl add "$version" "$LITE_XL_DATA" >/dev/null 2>&1 || true
+    fi
+
+    info "lite-xl: installed $version ($BIN_DIR/lite-xl)"
+)
+
+install_uv() (
+    local arch url tmp
+    arch=$(machine_arch) || { err "uv: unsupported architecture"; return 1; }
+    if [[ -x $BIN_DIR/uv ]]; then
+        info "uv: already installed ($BIN_DIR/uv)"
+        return 0
+    fi
+    url="https://github.com/astral-sh/uv/releases/download/$UV_VERSION/uv-$arch-unknown-linux-gnu.tar.gz"
+    tmp=$(mktemp -d)
+    trap 'rm -rf "${tmp:-}"' RETURN
+    info "uv: downloading $UV_VERSION"
+    curl -fsSL --retry 3 --retry-delay 5 -o "$tmp/uv.tar.gz" "$url" || {
+        err "uv: download failed: $url"
+        return 1
+    }
+    tar -xzf "$tmp/uv.tar.gz" -C "$tmp" || { err "uv: extract failed"; return 1; }
+    mkdir -p "$BIN_DIR"
+    install -m 0755 "$tmp/uv-$arch-unknown-linux-gnu/uv" "$BIN_DIR/uv"
+    install -m 0755 "$tmp/uv-$arch-unknown-linux-gnu/uvx" "$BIN_DIR/uvx"
+    info "uv: installed $UV_VERSION ($BIN_DIR/uv)"
+)
+
+install_bun() (
+    local arch url tmp
+    case "$(uname -m)" in
+        x86_64) arch=x64 ;;
+        aarch64) arch=aarch64 ;;
+        *) err "bun: unsupported architecture"; return 1 ;;
+    esac
+    if [[ -x $BIN_DIR/bun ]]; then
+        info "bun: already installed ($BIN_DIR/bun)"
+        return 0
+    fi
+    if ! have unzip; then
+        err "bun: unzip is required"
+        return 1
+    fi
+    url="https://github.com/oven-sh/bun/releases/download/bun-v$BUN_VERSION/bun-linux-$arch.zip"
+    tmp=$(mktemp -d)
+    trap 'rm -rf "${tmp:-}"' RETURN
+    info "bun: downloading $BUN_VERSION"
+    curl -fsSL --retry 3 --retry-delay 5 -o "$tmp/bun.zip" "$url" || {
+        err "bun: download failed: $url"
+        return 1
+    }
+    unzip -q -o "$tmp/bun.zip" -d "$tmp" || { err "bun: extract failed"; return 1; }
+    mkdir -p "$BIN_DIR"
+    install -m 0755 "$tmp/bun-linux-$arch/bun" "$BIN_DIR/bun"
+    info "bun: installed $BUN_VERSION ($BIN_DIR/bun)"
+)
+
+install_luaver() (
+    local dir="$INSTALL_ROOT/share/luaver" tmp
+    if [[ -x $BIN_DIR/luaver ]]; then
+        info "luaver: already installed ($BIN_DIR/luaver)"
+        return 0
+    fi
+    tmp=$(mktemp -d)
+    trap 'rm -rf "${tmp:-}"' RETURN
+
+    info "luaver: downloading $LUAVER_VERSION"
+    fetch_verified "$LUAVER_URL/luaver" "$LUAVER_SHA256" "$tmp/luaver" || return 1
+    fetch_verified "$LUAVER_URL/completions/luaver.bash" "$LUAVER_COMPLETIONS_SHA256" \
+        "$tmp/luaver.bash" || return 1
+
+    install -d -m 0755 "$dir/completions"
+    install -m 0644 "$tmp/luaver" "$dir/luaver"
+    install -m 0644 "$tmp/luaver.bash" "$dir/completions/luaver.bash"
+
+    # luaver needs to be sourced to set PATH and completions, so the command in
+    # ~/.local/bin sources the installed copy and forwards its arguments.
+    mkdir -p "$BIN_DIR"
+    cat >"$BIN_DIR/luaver" <<EOF
+#!/usr/bin/env bash
+# Written by 'hyperblue install luaver'. Managed file; edits are overwritten.
+set -uo pipefail
+. "$dir/luaver"
+luaver "\$@"
+EOF
+    chmod 0755 "$BIN_DIR/luaver"
+    info "luaver: installed $LUAVER_VERSION ($BIN_DIR/luaver)"
+)
+install_deno() (
+    local arch url tmp
+    arch=$(machine_arch) || { err "deno: unsupported architecture"; return 1; }
+    if [[ -x $BIN_DIR/deno ]]; then
+        info "deno: already installed ($BIN_DIR/deno)"
+        return 0
+    fi
+    if ! have unzip; then
+        err "deno: unzip is required"
+        return 1
+    fi
+    url="https://github.com/denoland/deno/releases/download/v$DENO_VERSION/deno-$arch-unknown-linux-gnu.zip"
+    tmp=$(mktemp -d)
+    trap 'rm -rf "${tmp:-}"' RETURN
+    info "deno: downloading $DENO_VERSION"
+    curl -fsSL --retry 3 --retry-delay 5 -o "$tmp/deno.zip" "$url" || {
+        err "deno: download failed: $url"
+        return 1
+    }
+    unzip -q -o "$tmp/deno.zip" -d "$tmp" || { err "deno: extract failed"; return 1; }
+    mkdir -p "$BIN_DIR"
+    install -m 0755 "$tmp/deno" "$BIN_DIR/deno"
+    info "deno: installed $DENO_VERSION ($BIN_DIR/deno)"
+)
+
+install_fnm() (
+    local arch url tmp
+    case "$(uname -m)" in
+        x86_64) arch=linux ;;
+        aarch64) arch=arm64 ;;
+        *) err "fnm: unsupported architecture"; return 1 ;;
+    esac
+    if [[ -x $BIN_DIR/fnm ]]; then
+        info "fnm: already installed ($BIN_DIR/fnm)"
+        return 0
+    fi
+    if ! have unzip; then
+        err "fnm: unzip is required"
+        return 1
+    fi
+    url="https://github.com/Schniz/fnm/releases/download/v$FNM_VERSION/fnm-$arch.zip"
+    tmp=$(mktemp -d)
+    trap 'rm -rf "${tmp:-}"' RETURN
+    info "fnm: downloading $FNM_VERSION"
+    curl -fsSL --retry 3 --retry-delay 5 -o "$tmp/fnm.zip" "$url" || {
+        err "fnm: download failed: $url"
+        return 1
+    }
+    unzip -q -o "$tmp/fnm.zip" -d "$tmp" || { err "fnm: extract failed"; return 1; }
+    mkdir -p "$BIN_DIR"
+    install -m 0755 "$tmp/fnm" "$BIN_DIR/fnm"
+    info "fnm: installed $FNM_VERSION ($BIN_DIR/fnm)"
+)
+
+install_pyenv() (
+    local dir="$INSTALL_ROOT/share/pyenv"
+    if [[ -x $BIN_DIR/pyenv && -d $dir/plugins ]]; then
+        info "pyenv: already installed ($dir)"
+        return 0
+    fi
+    if ! have git; then
+        err "pyenv: git is required"
+        return 1
+    fi
+
+    info "pyenv: cloning $PYENV_VERSION"
+    rm -rf "$dir"
+    if ! git -c advice.detachedHead=false clone -q --depth 1 --branch "$PYENV_VERSION" \
+        https://github.com/pyenv/pyenv "$dir"; then
+        err "pyenv: clone failed"
+        return 1
+    fi
+    if ! git clone -q --depth 1 \
+        https://github.com/pyenv/pyenv-virtualenv "$dir/plugins/pyenv-virtualenv"; then
+        warn "pyenv: pyenv-virtualenv clone failed; pyenv itself still works"
+    fi
+
+    # pyenv's `pyenv` is a shell function only after eval'ing init, so the
+    # command in ~/.local/bin forwards to the real bin.
+    mkdir -p "$BIN_DIR"
+    cat >"$BIN_DIR/pyenv" <<EOF
+#!/usr/bin/env bash
+# Written by 'hyperblue install pyenv'. Managed file; edits are overwritten.
+set -uo pipefail
+export PYENV_ROOT="$dir"
+exec "$dir/bin/pyenv" "\$@"
+EOF
+    chmod 0755 "$BIN_DIR/pyenv"
+    info "pyenv: installed $PYENV_VERSION ($BIN_DIR/pyenv)"
+)
+
+TOOLS="lite-xl uv bun deno fnm pyenv luaver"
+
+install_tool() {
+    case $1 in
+        lite-xl|litexl|lite_xl) install_lite_xl ;;
+        uv) install_uv ;;
+        bun) install_bun ;;
+        deno) install_deno ;;
+        fnm) install_fnm ;;
+        pyenv) install_pyenv ;;
+        luaver) install_luaver ;;
+        *)
+            err "unknown tool: $1 (available: $TOOLS)"
+            return 2
+            ;;
+    esac
+}
+
+cmd_install() {
+    local tool rc=0 requested=()
+
+    while (($#)); do
+        case $1 in
+            --list)
+                for tool in $TOOLS; do info "$tool"; done
+                return 0
+                ;;
+            -h|--help)
+                usage
+                return 0
+                ;;
+            -*)
+                err "unknown option: $1"
+                return 2
+                ;;
+            *) requested+=("$1") ;;
+        esac
+        shift
+    done
+
+    ((${#requested[@]})) || read -ra requested <<<"$TOOLS"
+
+    mkdir -p "$BIN_DIR" || return 1
+
+    for tool in "${requested[@]}"; do
+        info "${BOLD}==> $tool${NORMAL}"
+        # Every installer downloads, so check once per tool rather than
+        # failing the whole run on a transient outage.
+        if ! network_available; then
+            err "$tool: no network connectivity"
+            rc=1
+            continue
+        fi
+        install_tool "$tool" || rc=1
+    done
+
+    if case ":$PATH:" in *":$BIN_DIR:"*) true ;; *) false ;; esac; then
+        :
+    else
+        warn "$BIN_DIR is not on PATH in this shell; start a new login shell."
+    fi
+
+    return "$rc"
+}
+
 cmd_status() {
     info "${BOLD}Hyperblue status${NORMAL}"
     info "  image version : $(image_version)"
@@ -281,6 +630,7 @@ main() {
         setup) cmd_setup "$@" ;;
         update) cmd_update "$@" ;;
         fix) cmd_fix "$@" ;;
+        install) cmd_install "$@" ;;
         status) cmd_status "$@" ;;
         version|--version|-V) cmd_version ;;
         help|--help|-h) usage ;;
@@ -293,4 +643,3 @@ main() {
 }
 
 main "$@"
-
