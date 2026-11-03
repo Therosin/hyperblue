@@ -1,11 +1,11 @@
 name: hyperblue
-description: Bluefin DX developer tooling on a Hyprland-first desktop with the Ambxst shell, keeping Bluefin's Waydroid support intact.
+description: Bluefin DX developer tooling on a Hyprland-first desktop with Noctalia, keeping Bluefin's Waydroid support intact.
 base-image: ghcr.io/ublue-os/bluefin-dx
 image-version: 44
 
 modules:
-  # Ship the Hyperblue CLI, the per-first-boot setup steps, the Ambxst
-  # installer and the system-wide Hyprland / SDDM / portal configuration.
+  # Ship the Hyperblue CLI, per-user setup steps and the system-wide
+  # Hyprland / SDDM / portal configuration.
   - type: files
     files:
       - source: usr
@@ -17,7 +17,7 @@ modules:
     install:
       - dconf-update-service
 
-  # Hyprland and Quickshell are not in Fedora. This module is the strict one:
+  # Hyprland and Noctalia come from the configured COPR. This module is strict:
   # everything listed here must resolve, or the image has no usable session.
   - type: dnf
     repos:
@@ -28,7 +28,6 @@ modules:
         # Session, compositor, portal and polkit agent
         - hyprland
         - noctalia-git
-        - quickshell
         - xdg-desktop-portal-hyprland
         - xdg-desktop-portal-gtk
         - hyprpolkitagent
@@ -48,7 +47,8 @@ modules:
         - nm-connection-editor
         - blueman
         - gnome-keyring-pam
-        - unzip
+        # English (UK) locale data for the system language default.
+        - glibc-langpack-en
         # Binder support is built into the Fedora kernel Bluefin ships
         # (CONFIG_ANDROID_BINDERFS=y), so no kmod or kernel swap is needed.
         # Initialisation stays an explicit user action: `ujust setup-waydroid`.
@@ -60,70 +60,21 @@ modules:
       packages:
         - gdm
 
-  # Long tail for the Ambxst shell. skip-unavailable keeps an upstream package
-  # rename from breaking the whole image; nothing here is session-critical.
+  # Tools used by the desktop keybinds, clipboard integration and ujust recipes.
   - type: dnf
     install:
-      skip-unavailable: true
       packages:
-        - matugen
-        - fuzzel
-        - tmux
-        - jq
-        - wtype
-        - wl-clipboard
-        - brightnessctl
-        - ddcutil
-        - upower
-        # Power profiles come from tuned-ppd, which the base image already
-        # installs; requesting power-profiles-daemon aborts the transaction
-        # because both provide ppd-service.
-        - wlsunset
         - playerctl
-        - easyeffects
-        - libnotify
-        - zenity
-        - adw-gtk3-theme
-        - kf6-syntax-highlighting
-        - kf6-breeze-icons
-        - hicolor-icon-theme
-        - qt6-qtbase
-        - qt6-qtdeclarative
-        - qt6-qtwayland
-        - qt6-qtsvg
-        - qt6-qttools
-        - qt6-qtimageformats
-        - qt6-qtmultimedia
-        - qt6-qtshadertools
-        - qt5-qtwayland
-        - tesseract
-        - tesseract-langpack-eng
-        - tesseract-langpack-spa
-        - tesseract-langpack-jpn
-        - tesseract-langpack-chi_sim
-        - tesseract-langpack-chi_tra
-        - tesseract-langpack-kor
-        - tesseract-langpack-lat
-        - google-roboto-fonts
-        - google-roboto-mono-fonts
-        - google-noto-fonts-common
-        - google-noto-sans-cjk-fonts
-        - google-noto-emoji-fonts
-        - dejavu-sans-fonts
-        - liberation-sans-fonts
-        - gstreamer1
-        - gstreamer1-plugins-base
-        - gstreamer1-plugins-good
-        - gstreamer1-plugins-bad-free
-        - gstreamer1-plugin-libav
+        - brightnessctl
+        - wl-clipboard
+        - jq
 
-  # Ambxst ships an installer that refuses to run as root, and it would put the
-  # shell in a user's home anyway. Ours installs the same release system-wide.
   - type: script
     snippets:
-      - "chmod 0755 /usr/bin/hyperblue /usr/libexec/hyperblue/install-ambxst /usr/libexec/hyperblue/ambxst-session-start /usr/libexec/hyperblue/sddm-default-session"
+      - "chmod 0755 /usr/bin/hyperblue /usr/libexec/hyperblue/sddm-default-session"
       - "chmod 0755 /usr/libexec/hyperblue/setup.d/*"
-      - "bash /usr/libexec/hyperblue/install-ambxst"
+    scripts:
+      - install-lpm.sh
 
   - type: systemd
     system:
@@ -132,7 +83,7 @@ modules:
         - sddm.service
         - waydroid-workaround.service
     user:
-      # Runs `hyperblue setup` once per user, after login and with network.
+      # Runs pending per-user setup steps after login.
       enabled:
         - hyperblue-setup.service
 
