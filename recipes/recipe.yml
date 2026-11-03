@@ -60,18 +60,21 @@ modules:
       packages:
         - gdm
 
-  # Tools used by the desktop keybinds and clipboard integration.
+  # Tools used by the desktop keybinds, clipboard integration and ujust recipes.
   - type: dnf
     install:
       packages:
         - playerctl
         - brightnessctl
         - wl-clipboard
+        - jq
 
   - type: script
     snippets:
       - "chmod 0755 /usr/bin/hyperblue /usr/libexec/hyperblue/sddm-default-session"
       - "chmod 0755 /usr/libexec/hyperblue/setup.d/*"
+    scripts:
+      - install-lpm.sh
 
   - type: systemd
     system:
@@ -89,4 +92,3 @@ modules:
     brew-analytics: false
 
   - type: signing
-
