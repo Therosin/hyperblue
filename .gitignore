@@ -3,3 +3,11 @@ cosign.private
 /Containerfile
 codealike.json
 .vscode
+
+# BlueBuild scratch dirs
+.bluebuild-scripts_*
+/.bluebuild-scripts_*
+
+# Local build artefacts (see Justfile)
+_build*
+output/

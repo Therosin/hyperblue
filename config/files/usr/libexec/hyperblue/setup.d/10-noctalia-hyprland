@@ -5,19 +5,61 @@ set -euo pipefail
 
 config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hypr"
 config_file="$config_dir/hyprland.lua"
+
 mkdir -p "$config_dir"
 
+# No personal config yet: the shipped defaults already start Noctalia.
 if [[ ! -e $config_file ]]; then
     cp /etc/xdg/hypr/hyprland.lua "$config_file"
+    exit 0
 fi
 
-# The copied defaults already contain the hook. Add it once to existing configs.
-if ! grep -Eq "^[[:space:]]*hl\.exec_cmd\([\"']noctalia[\"']\)" "$config_file"; then
-    cat >>"$config_file" <<'LUA'
+# True when a `hyprland.start` block already starts Noctalia, whether that is
+# our hook or a hand-written one. Comments are stripped, quoting and spacing are
+# ignored, and the block is tracked to its `end` so a long block still matches
+# while a launcher bind outside it does not.
+hook_present() {
+    awk -v q="'" '
+        {
+            line = $0
+            sub(/#.*/, "", line)
+            gsub(/[ \t\r"]/, "", line)
+            gsub(q, "", line)
 
+            if (in_block) {
+                if (line ~ /exec_cmd\(noctalia\)/) found = 1
+                if (line ~ /^end\)?/) in_block = 0
+                next
+            }
+
+            if (line ~ /hyprland\.start/) {
+                if (line ~ /exec_cmd\(noctalia\)/) found = 1
+                if (line !~ /^end\)?/ && line !~ /end\)?$/) in_block = 1
+            }
+        }
+        END { exit(found ? 0 : 1) }
+    ' "$1"
+}
+
+if hook_present "$config_file"; then
+    exit 0
+fi
+
+# The hook goes in front of the existing chunk: a top-level `return` has to
+# stay the last statement in its block. The rewrite goes through a temp file so
+# a failure cannot truncate the user's config. Writing to the resolved target
+# follows symlinks from dotfiles managers, and chmod keeps the original mode.
+target=$(readlink -f -- "$config_file")
+tmp_file=$(mktemp "$target.XXXXXX")
+trap 'rm -f "$tmp_file"' EXIT
+chmod --reference="$target" "$tmp_file"
+
+cat >"$tmp_file" <<'LUA'
 -- hyperblue:noctalia-autostart
 hl.on("hyprland.start", function()
   hl.exec_cmd("noctalia")
 end)
+
 LUA
-fi
+cat "$config_file" >>"$tmp_file"
+mv -f "$tmp_file" "$target"
