@@ -10,14 +10,22 @@ Everything the desktop needs is baked into the image at build time. There is no 
 
 The desktop is assembled from RPMs only:
 
-- **Hyprland** itself (with its own `/usr/share/wayland-sessions` entry), plus `quickshell`, `xdg-desktop-portal-hyprland`, `hyprpolkitagent` and `xdg-desktop-portal-gtk`
+- **Hyprland** itself (with its own `/usr/share/wayland-sessions` entry), plus `xdg-desktop-portal-hyprland`, `hyprpolkitagent` and `xdg-desktop-portal-gtk`
 - **SDDM** as the greeter, configured for the X11 display server and preseeded to select Hyprland by `sddm-default-session.service`
-- **Ambxst 1.3.14** as the desktop shell, installed at build time from its pinned upstream release into `/usr/share/ambxst` (plus `/usr/libexec/ambxst/ambxst` and an `/usr/bin/ambxst` wrapper that sets `AMBXST_SHELL`). Ambxst's own `install.sh` refuses to run as root, so the image ships `config/files/usr/libexec/hyperblue/install-ambxst` instead, which verifies pinned checksums.
-- A deliberately small app set: Alacritty, Ptyxis (Bluefin's container-oriented terminal), Thunar, `pavucontrol`, `nm-connection-editor`, Blueman, GNOME Keyring, and the fonts/tools Ambxst's Fedora dependency list expects.
+- **Noctalia** as the desktop shell, installed from the `noctalia-git` RPM in `lionheartp/Hyprland`.
+- A deliberately small app set: Alacritty, Ptyxis (Bluefin's container-oriented terminal), Thunar, `pavucontrol`, `nm-connection-editor`, Blueman and GNOME Keyring.
 
-System-wide defaults live in `/etc/xdg/hypr/hyprland.conf`; a personal `~/.config/hypr/hyprland.conf` takes precedence once Ambxst has written one. Fallback shortcuts: Super+Enter (terminal), Super+D (launcher), Super+E (file manager), Super+Q (close), Super+Shift+E (exit).
+System-wide defaults live in `/etc/xdg/hypr/hyprland.lua`. On first setup they are copied to `$XDG_CONFIG_HOME/hypr/hyprland.lua` (default `~/.config/hypr/hyprland.lua`) if no personal Lua config exists. Shortcuts: Super+Enter (terminal), Super+D (Noctalia launcher), Super+E (file manager), Super+Q (close), Super+Shift+E (exit). The defaults also start the polkit agent and Hyprland portal.
 
-On first login the session helper runs `ambxst install hyprland`, which sources `~/.local/share/ambxst/hyprland.conf` from your Hyprland config. It then appends the `exec-once` lines that start the polkit agent and the Hyprland portal, so those keep working after Ambxst rewrites your config.
+The offline setup step adds the following [documented Noctalia startup hook](https://docs.noctalia.dev/noctalia/v5.4.1/compositor-settings/hyprland/) to an existing Lua config without replacing personal settings. Repeated setup runs do not duplicate the hook.
+
+```lua
+hl.on("hyprland.start", function()
+  hl.exec_cmd("noctalia")
+end)
+```
+
+After updating an existing installation, run `hyperblue update` and log out and back in. Personal legacy `hyprland.conf` files are preserved; port any custom settings you want to keep to `hyprland.lua`.
 
 ## The `hyperblue` command
 
@@ -33,7 +41,7 @@ hyperblue version   # image and CLI version
 
 Options for `setup`/`update`/`fix`: `--list`, `--only STEP`, `--force`, `--no-wait`, `--auto`.
 
-`hyperblue setup` runs automatically once per user on first login through `hyperblue-setup.service`. It waits for network connectivity before starting (with a timeout, and `systemd` retries on failure), records each step under `$XDG_STATE_HOME/hyperblue`, and is safe to re-run. To re-run it by hand:
+`hyperblue setup` runs automatically on login through `hyperblue-setup.service`, records each step under `$XDG_STATE_HOME/hyperblue`, and is safe to re-run. Newly added steps run even if an earlier image's setup completed. Only steps that declare a network requirement wait for connectivity; Noctalia integration runs offline. To re-run it by hand:
 
 ```bash
 ujust re-run-hyperblue-setup
@@ -86,3 +94,4 @@ These images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](ht
 ```bash
 cosign verify --key cosign.pub ghcr.io/therosin/hyperblue
 ```
+

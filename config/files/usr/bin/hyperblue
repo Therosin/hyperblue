@@ -62,7 +62,7 @@ Options for setup/update/fix:
 State lives in \$XDG_STATE_HOME/hyperblue (default ~/.local/state/hyperblue).
 Steps live in $STEP_DIR.
 
-Everything else ships inside the image: Hyprland, the Ambxst shell, the SDDM
+Everything else ships inside the image: Hyprland, Noctalia, the SDDM
 greeter and Bluefin's Waydroid integration all come preinstalled. Waydroid is
 initialised explicitly with 'ujust setup-waydroid', not from this command.
 EOF
@@ -172,10 +172,6 @@ setup_run() {
 
     mkdir -p "$SETUP_STATE"
 
-    if ((auto)) && [[ -f $COMPLETE_MARKER ]]; then
-        return 0
-    fi
-
     local pending=() step
     while IFS= read -r step; do
         [[ -n $step ]] || continue
@@ -188,6 +184,7 @@ setup_run() {
     done < <(list_steps)
 
     if ((${#pending[@]} == 0)); then
+        ((auto)) && [[ -f $COMPLETE_MARKER ]] && return 0
         info "Nothing to do."
         touch "$COMPLETE_MARKER"
         return 0
@@ -240,7 +237,7 @@ cmd_status() {
     info "${BOLD}Hyperblue status${NORMAL}"
     info "  image version : $(image_version)"
     info "  cli version   : $CLI_VERSION"
-    info "  shell         : ${AMBXST_SHELL:-/usr/share/ambxst}"
+    info "  shell         : noctalia"
 
     if network_available; then
         info "  network       : available"
@@ -296,3 +293,4 @@ main() {
 }
 
 main "$@"
+

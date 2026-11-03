@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Hyperblue setup step: add Noctalia to the user's Hyprland Lua config.
+# Idempotent and offline-safe; preserves existing personal configuration.
+set -euo pipefail
+
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hypr"
+config_file="$config_dir/hyprland.lua"
+mkdir -p "$config_dir"
+
+if [[ ! -e $config_file ]]; then
+    cp /etc/xdg/hypr/hyprland.lua "$config_file"
+fi
+
+# The copied defaults already contain the hook. Add it once to existing configs.
+if ! grep -Eq "^[[:space:]]*hl\.exec_cmd\([\"']noctalia[\"']\)" "$config_file"; then
+    cat >>"$config_file" <<'LUA'
+
+-- hyperblue:noctalia-autostart
+hl.on("hyprland.start", function()
+  hl.exec_cmd("noctalia")
+end)
+LUA
+fi
