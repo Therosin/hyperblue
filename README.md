@@ -13,8 +13,9 @@ The default system language is English (UK), `en_GB.UTF-8`. The keyboard default
 The desktop is assembled from RPMs only:
 
 - **Hyprland** itself (with its own `/usr/share/wayland-sessions` entry), plus `xdg-desktop-portal-hyprland`, `hyprpolkitagent` and `xdg-desktop-portal-gtk`
-- **SDDM** as the greeter, configured for the X11 display server and preseeded to select Hyprland by `sddm-default-session.service`
+- **SDDM** as the greeter, configured for the X11 display server and preseeded to select Hyprland by `sddm-default-session.service`. The greeter uses the **Mono Code** theme, vendored under `/usr/share/sddm/themes/monocode` (see [Login screen](#login-screen)).
 - **Noctalia** as the desktop shell, installed from the `noctalia-git` RPM in `lionheartp/Hyprland`.
+- **`hyprland-guiutils`**, which provides `hyprland-dialog`. Hyprland treats it as a runtime dependency for its own dialogs and shows a startup warning when it is missing.
 - A deliberately small app set: Alacritty, Ptyxis (Bluefin's container-oriented terminal), Thunar, `pavucontrol`, `nm-connection-editor`, Blueman and GNOME Keyring.
 - **`lpm`**, Lite XL's plugin manager, at `/usr/bin/lpm`. It is pinned to 1.5.1 and SHA-256 verified by `config/scripts/install-lpm.sh` at build time.
 
@@ -29,6 +30,23 @@ end)
 ```
 
 After updating an existing installation, run `hyperblue update` and log out and back in. Personal legacy `hyprland.conf` files are preserved; port any custom settings you want to keep to `hyprland.lua`.
+
+## Login screen
+
+The greeter is the [Mono Code](https://github.com/Mono-Code-Scheme/sddm) SDDM theme (MIT, upstream release 1.2.1), vendored in `config/files/usr/share/sddm/themes/monocode` and selected by `/etc/sddm.conf.d/10-hyperblue.conf`:
+
+```conf
+[Theme]
+Current=monocode
+```
+
+The upstream project ships an interactive `install.py` that writes a `theme.conf.user` next to the theme and edits `/etc/sddm.conf` by hand. Neither step works on an rpm-ostree image: `/usr` and `/etc` are read-only at runtime, and SDDM cannot write a user override next to a baked-in theme. The theme is therefore installed as ordinary image content and everything the installer would have customised is committed in `theme.conf` instead:
+
+- the dark **panther** scheme with the blue accent, `#72BBFF`
+- the panel drawn flat — the upstream 2px `borderColor` outline is removed in `Main.qml`
+- a dark diagonal gradient background, generated as `assets/wallpaper.jpg`
+
+Editing any of those means changing the file under `config/files` and rebuilding; there is no per-machine theme override.
 
 ## The `hyperblue` command
 

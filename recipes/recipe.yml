@@ -27,6 +27,9 @@ modules:
       packages:
         # Session, compositor, portal and polkit agent
         - hyprland
+        # Provides hyprland-dialog, the runtime dependency Hyprland warns about
+        # at startup when it is absent (used by its own dialogs and helpers).
+        - hyprland-guiutils
         - noctalia-git
         - xdg-desktop-portal-hyprland
         - xdg-desktop-portal-gtk

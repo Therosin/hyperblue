@@ -1,0 +1,17 @@
+[SddmGreeterTheme]
+Name=Monocode
+Description=Monocode Theme for SDDM
+Author=lighttigerxiv
+Copyright=(c) 2025, lighttigerxiv
+License=MIT
+Type=sddm-theme
+Version=1.2.1
+Website=https://github.com/monocode-scheme/sddm
+Screenshot=preview.jpg
+MainScript=Main.qml
+ConfigFile=theme.conf
+TranslationsDirectory=translations
+Email=lighttigexiv@gmail.com
+Theme-Id=monocode
+Theme-API=2.0
+QtVersion=6
