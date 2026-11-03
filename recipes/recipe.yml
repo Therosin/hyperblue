@@ -27,6 +27,7 @@ modules:
       packages:
         # Session, compositor, portal and polkit agent
         - hyprland
+        - noctalia-git
         - quickshell
         - xdg-desktop-portal-hyprland
         - xdg-desktop-portal-gtk
