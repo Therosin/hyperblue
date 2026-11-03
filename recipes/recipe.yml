@@ -47,6 +47,8 @@ modules:
         - nm-connection-editor
         - blueman
         - gnome-keyring-pam
+        # English (UK) locale data for the system language default.
+        - glibc-langpack-en
         # Binder support is built into the Fedora kernel Bluefin ships
         # (CONFIG_ANDROID_BINDERFS=y), so no kmod or kernel swap is needed.
         # Initialisation stays an explicit user action: `ujust setup-waydroid`.

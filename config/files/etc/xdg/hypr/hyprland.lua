@@ -10,7 +10,10 @@ hl.on("hyprland.start", function()
   hl.exec_cmd("systemctl --user start xdg-desktop-portal-hyprland.service")
 end)
 
-hl.config({ misc = { disable_hyprland_logo = true } })
+hl.config({
+  misc = { disable_hyprland_logo = true },
+  input = { kb_layout = "gb" },
+})
 
 local mainMod = "SUPER"
 hl.bind(mainMod .. " + Return", hl.dsp.exec_cmd("alacritty"))

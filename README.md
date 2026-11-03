@@ -8,6 +8,8 @@ Everything the desktop needs is baked into the image at build time. There is no 
 
 ## Hyprland desktop
 
+The default system language is English (UK), `en_GB.UTF-8`. The keyboard defaults to UK English in Hyprland (`gb`), the SDDM X11 greeter (`gb`), and the text console (`uk`). Existing personal Hyprland Lua configs keep their keyboard settings; set `input.kb_layout = "gb"` in your `hl.config` block to switch an existing config.
+
 The desktop is assembled from RPMs only:
 
 - **Hyprland** itself (with its own `/usr/share/wayland-sessions` entry), plus `xdg-desktop-portal-hyprland`, `hyprpolkitagent` and `xdg-desktop-portal-gtk`
