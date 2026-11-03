@@ -15,14 +15,14 @@ if [[ ! -e $config_file ]]; then
 fi
 
 # True when a `hyprland.start` block already starts Noctalia, whether that is
-# our hook or a hand-written one. Comments are stripped, quoting and spacing are
-# ignored, and the block is tracked to its `end` so a long block still matches
-# while a launcher bind outside it does not.
+# our hook or a hand-written one. `--` comments are stripped, quoting and
+# spacing are ignored, and the block is tracked to its `end` so a long block
+# still matches while a launcher bind outside it does not.
 hook_present() {
     awk -v q="'" '
         {
             line = $0
-            sub(/#.*/, "", line)
+            sub(/--.*/, "", line)
             gsub(/[ \t\r"]/, "", line)
             gsub(q, "", line)
 

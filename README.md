@@ -57,7 +57,7 @@ Options for `setup`/`update`/`fix`: `--list`, `--only STEP`, `--force`, `--no-wa
 | `pyenv` | pyenv `2.8.14` plus pyenv-virtualenv in `~/.local/share/pyenv`, with `~/.local/bin/pyenv` as the entry point |
 | `luaver` | `luaver` 1.1.0 in `~/.local/share/luaver`, a `~/.local/bin/luaver` shim that sources it |
 
-Every download is pinned to a version and verified against a SHA-256 where upstream publishes one (`lpm`, `luaver`). `lite-xl` resolves the current release at install time rather than hard-coding a version.
+Downloads are pinned to a version. Where the project publishes a checksum next to its release (`uv`, `bun`, `deno`, `luaver`), the artifact is verified against it and a mismatch aborts the install without writing the binary. `lite-xl` resolves the current release at install time and `fnm` publishes no checksum, so those two trust the HTTPS download.
 
 `--list` prints the available names. `lpm` itself ships in the image (`/usr/bin/lpm`), pinned and checksum-verified at build time, so plugin installs work without a separate download.
 

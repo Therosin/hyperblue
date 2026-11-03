@@ -266,8 +266,10 @@ cmd_fix() {
 ## Per-user tool installation ------------------------------------------------
 #
 # Everything here writes under ~/.local and is safe to re-run: a tool that is
-# already present is skipped, and every download is verified against a pinned
-# SHA-256 so a moved or compromised release fails instead of installing.
+# already present is skipped. Digests come from the checksum file each project
+# publishes next to its release, so a moved or compromised artifact fails
+# instead of installing. lite-xl and fnm publish none; those pin a version and
+# trust the HTTPS download.
 
 machine_arch() {
     case "$(uname -m)" in
@@ -275,6 +277,34 @@ machine_arch() {
         aarch64) printf 'aarch64' ;;
         *) return 1 ;;
     esac
+}
+
+# SHA-256 of <tool> for <arch>, copied verbatim from the release's checksum
+# file. Returns 1 when the project publishes no digest.
+release_digest() {
+    case "$1/$2" in
+        uv/x86_64) printf '%s' 'f29c3e94ffabd7e6f3ba521dba169a9b7ec12100bf3257087f0f24f6123f3645' ;;
+        uv/aarch64) printf '%s' '229e194255c7958d86d56e8790d969a6f74736592133f0dfd0076f754c642c1d' ;;
+        bun/x86_64) printf '%s' 'bf8ccbfb2b0b80159e0f9a6d15c55317add8077534dbc6130a3edb52fccb395c' ;;
+        bun/aarch64) printf '%s' 'baa6bb36f51d6e58561e02bbea825038a9df454f673d6d776e8bbf86f8c7850e' ;;
+        deno/x86_64) printf '%s' 'e890975bc2549807bbcc0b584ffafda72cc7c93349dd99c80483dd784f6c4609' ;;
+        deno/aarch64) printf '%s' 'd49596c20b9788cf8f5d8ddf644103d4bde56ed239753f0bdb92ba9361d51905' ;;
+        *) return 1 ;;
+    esac
+}
+
+# Download <url> into <dest>, checking it against <tool>'s published digest for
+# <arch>. Falls back to the download alone when upstream publishes none.
+fetch_release() {
+    local tool=$1 arch=$2 url=$3 dest=$4 sha256
+    if sha256=$(release_digest "$tool" "$arch"); then
+        fetch_verified "$url" "$sha256" "$dest"
+    else
+        curl -fsSL --retry 3 --retry-delay 5 -o "$dest" "$url" || {
+            err "download failed: $url"
+            return 1
+        }
+    fi
 }
 
 fetch_verified() {
@@ -315,25 +345,28 @@ install_lite_xl() (
     url="https://github.com/$LITE_XL_REPO/releases/download/v$version/lite-xl-v$version-addons-linux-$arch-portable.tar.gz"
 
     tmp=$(mktemp -d)
-    trap 'rm -rf "${tmp:-}"' RETURN
+    trap 'rm -rf "${tmp:-}"' EXIT
     info "lite-xl: downloading $version"
     if ! curl -fsSL --retry 3 --retry-delay 5 -o "$tmp/lite-xl.tar.gz" "$url"; then
         err "lite-xl: download failed: $url"
         return 1
     fi
 
-    mkdir -p "$LITE_XL_DATA"
+    mkdir -p "$LITE_XL_DATA" || return 1
     if ! tar -xzf "$tmp/lite-xl.tar.gz" -C "$tmp"; then
         err "lite-xl: could not extract $url"
         return 1
     fi
     # Keep the portable layout: <share>/lite-xl/lite-xl next to <share>/lite-xl/data,
     # which is where a binary in <prefix>/bin looks for its data directory.
-    cp -a "$tmp/lite-xl/data" "$LITE_XL_DATA/data"
-    install -D -m 0755 "$tmp/lite-xl/lite-xl" "$LITE_XL_DATA/lite-xl"
+    cp -a "$tmp/lite-xl/data" "$LITE_XL_DATA/data" ||
+        { err "lite-xl: could not write $LITE_XL_DATA/data"; return 1; }
+    install -D -m 0755 "$tmp/lite-xl/lite-xl" "$LITE_XL_DATA/lite-xl" ||
+        { err "lite-xl: could not write $LITE_XL_DATA/lite-xl"; return 1; }
 
-    mkdir -p "$BIN_DIR"
-    ln -sfn "$LITE_XL_DATA/lite-xl" "$BIN_DIR/lite-xl"
+    mkdir -p "$BIN_DIR" || return 1
+    ln -sfn "$LITE_XL_DATA/lite-xl" "$BIN_DIR/lite-xl" ||
+        { err "lite-xl: could not link $BIN_DIR/lite-xl"; return 1; }
 
     if have lpm; then
         # Register the copy so `lpm install <addon>` targets it. This needs
@@ -353,16 +386,15 @@ install_uv() (
     fi
     url="https://github.com/astral-sh/uv/releases/download/$UV_VERSION/uv-$arch-unknown-linux-gnu.tar.gz"
     tmp=$(mktemp -d)
-    trap 'rm -rf "${tmp:-}"' RETURN
+    trap 'rm -rf "${tmp:-}"' EXIT
     info "uv: downloading $UV_VERSION"
-    curl -fsSL --retry 3 --retry-delay 5 -o "$tmp/uv.tar.gz" "$url" || {
-        err "uv: download failed: $url"
-        return 1
-    }
+    fetch_release uv "$arch" "$url" "$tmp/uv.tar.gz" || return 1
     tar -xzf "$tmp/uv.tar.gz" -C "$tmp" || { err "uv: extract failed"; return 1; }
-    mkdir -p "$BIN_DIR"
-    install -m 0755 "$tmp/uv-$arch-unknown-linux-gnu/uv" "$BIN_DIR/uv"
-    install -m 0755 "$tmp/uv-$arch-unknown-linux-gnu/uvx" "$BIN_DIR/uvx"
+    mkdir -p "$BIN_DIR" || return 1
+    install -m 0755 "$tmp/uv-$arch-unknown-linux-gnu/uv" "$BIN_DIR/uv" ||
+        { err "uv: could not write $BIN_DIR/uv"; return 1; }
+    install -m 0755 "$tmp/uv-$arch-unknown-linux-gnu/uvx" "$BIN_DIR/uvx" ||
+        { err "uv: could not write $BIN_DIR/uvx"; return 1; }
     info "uv: installed $UV_VERSION ($BIN_DIR/uv)"
 )
 
@@ -383,15 +415,13 @@ install_bun() (
     fi
     url="https://github.com/oven-sh/bun/releases/download/bun-v$BUN_VERSION/bun-linux-$arch.zip"
     tmp=$(mktemp -d)
-    trap 'rm -rf "${tmp:-}"' RETURN
+    trap 'rm -rf "${tmp:-}"' EXIT
     info "bun: downloading $BUN_VERSION"
-    curl -fsSL --retry 3 --retry-delay 5 -o "$tmp/bun.zip" "$url" || {
-        err "bun: download failed: $url"
-        return 1
-    }
+    fetch_release bun "$(machine_arch)" "$url" "$tmp/bun.zip" || return 1
     unzip -q -o "$tmp/bun.zip" -d "$tmp" || { err "bun: extract failed"; return 1; }
-    mkdir -p "$BIN_DIR"
-    install -m 0755 "$tmp/bun-linux-$arch/bun" "$BIN_DIR/bun"
+    mkdir -p "$BIN_DIR" || return 1
+    install -m 0755 "$tmp/bun-linux-$arch/bun" "$BIN_DIR/bun" ||
+        { err "bun: could not write $BIN_DIR/bun"; return 1; }
     info "bun: installed $BUN_VERSION ($BIN_DIR/bun)"
 )
 
@@ -402,28 +432,30 @@ install_luaver() (
         return 0
     fi
     tmp=$(mktemp -d)
-    trap 'rm -rf "${tmp:-}"' RETURN
+    trap 'rm -rf "${tmp:-}"' EXIT
 
     info "luaver: downloading $LUAVER_VERSION"
     fetch_verified "$LUAVER_URL/luaver" "$LUAVER_SHA256" "$tmp/luaver" || return 1
     fetch_verified "$LUAVER_URL/completions/luaver.bash" "$LUAVER_COMPLETIONS_SHA256" \
         "$tmp/luaver.bash" || return 1
 
-    install -d -m 0755 "$dir/completions"
-    install -m 0644 "$tmp/luaver" "$dir/luaver"
-    install -m 0644 "$tmp/luaver.bash" "$dir/completions/luaver.bash"
+    install -d -m 0755 "$dir/completions" || return 1
+    install -m 0644 "$tmp/luaver" "$dir/luaver" ||
+        { err "luaver: could not write $dir/luaver"; return 1; }
+    install -m 0644 "$tmp/luaver.bash" "$dir/completions/luaver.bash" ||
+        { err "luaver: could not write $dir/completions/luaver.bash"; return 1; }
 
     # luaver needs to be sourced to set PATH and completions, so the command in
     # ~/.local/bin sources the installed copy and forwards its arguments.
-    mkdir -p "$BIN_DIR"
-    cat >"$BIN_DIR/luaver" <<EOF
+    mkdir -p "$BIN_DIR" || return 1
+    cat >"$BIN_DIR/luaver" <<EOF || { err "luaver: could not write $BIN_DIR/luaver"; return 1; }
 #!/usr/bin/env bash
 # Written by 'hyperblue install luaver'. Managed file; edits are overwritten.
 set -uo pipefail
 . "$dir/luaver"
 luaver "\$@"
 EOF
-    chmod 0755 "$BIN_DIR/luaver"
+    chmod 0755 "$BIN_DIR/luaver" || return 1
     info "luaver: installed $LUAVER_VERSION ($BIN_DIR/luaver)"
 )
 install_deno() (
@@ -439,15 +471,13 @@ install_deno() (
     fi
     url="https://github.com/denoland/deno/releases/download/v$DENO_VERSION/deno-$arch-unknown-linux-gnu.zip"
     tmp=$(mktemp -d)
-    trap 'rm -rf "${tmp:-}"' RETURN
+    trap 'rm -rf "${tmp:-}"' EXIT
     info "deno: downloading $DENO_VERSION"
-    curl -fsSL --retry 3 --retry-delay 5 -o "$tmp/deno.zip" "$url" || {
-        err "deno: download failed: $url"
-        return 1
-    }
+    fetch_release deno "$arch" "$url" "$tmp/deno.zip" || return 1
     unzip -q -o "$tmp/deno.zip" -d "$tmp" || { err "deno: extract failed"; return 1; }
-    mkdir -p "$BIN_DIR"
-    install -m 0755 "$tmp/deno" "$BIN_DIR/deno"
+    mkdir -p "$BIN_DIR" || return 1
+    install -m 0755 "$tmp/deno" "$BIN_DIR/deno" ||
+        { err "deno: could not write $BIN_DIR/deno"; return 1; }
     info "deno: installed $DENO_VERSION ($BIN_DIR/deno)"
 )
 
@@ -468,15 +498,13 @@ install_fnm() (
     fi
     url="https://github.com/Schniz/fnm/releases/download/v$FNM_VERSION/fnm-$arch.zip"
     tmp=$(mktemp -d)
-    trap 'rm -rf "${tmp:-}"' RETURN
+    trap 'rm -rf "${tmp:-}"' EXIT
     info "fnm: downloading $FNM_VERSION"
-    curl -fsSL --retry 3 --retry-delay 5 -o "$tmp/fnm.zip" "$url" || {
-        err "fnm: download failed: $url"
-        return 1
-    }
+    fetch_release fnm "$(machine_arch)" "$url" "$tmp/fnm.zip" || return 1
     unzip -q -o "$tmp/fnm.zip" -d "$tmp" || { err "fnm: extract failed"; return 1; }
-    mkdir -p "$BIN_DIR"
-    install -m 0755 "$tmp/fnm" "$BIN_DIR/fnm"
+    mkdir -p "$BIN_DIR" || return 1
+    install -m 0755 "$tmp/fnm" "$BIN_DIR/fnm" ||
+        { err "fnm: could not write $BIN_DIR/fnm"; return 1; }
     info "fnm: installed $FNM_VERSION ($BIN_DIR/fnm)"
 )
 
@@ -505,15 +533,15 @@ install_pyenv() (
 
     # pyenv's `pyenv` is a shell function only after eval'ing init, so the
     # command in ~/.local/bin forwards to the real bin.
-    mkdir -p "$BIN_DIR"
-    cat >"$BIN_DIR/pyenv" <<EOF
+    mkdir -p "$BIN_DIR" || return 1
+    cat >"$BIN_DIR/pyenv" <<EOF || { err "pyenv: could not write $BIN_DIR/pyenv"; return 1; }
 #!/usr/bin/env bash
 # Written by 'hyperblue install pyenv'. Managed file; edits are overwritten.
 set -uo pipefail
 export PYENV_ROOT="$dir"
 exec "$dir/bin/pyenv" "\$@"
 EOF
-    chmod 0755 "$BIN_DIR/pyenv"
+    chmod 0755 "$BIN_DIR/pyenv" || return 1
     info "pyenv: installed $PYENV_VERSION ($BIN_DIR/pyenv)"
 )
 

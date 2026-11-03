@@ -11,3 +11,4 @@ codealike.json
 # Local build artefacts (see Justfile)
 _build*
 output/
+.local/

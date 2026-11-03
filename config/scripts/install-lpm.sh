@@ -6,7 +6,10 @@
 # compromised release fails the build instead of shipping silently.
 set -euo pipefail
 
-VERSION="${LPM_VERSION:-1.5.1}"
+# Digests are published per release, so the version is not overridable: bumping
+# it without also bumping the digests below would only trade a clean download
+# for a checksum failure.
+VERSION=1.5.1
 BASE="https://github.com/lite-xl/lite-xl-plugin-manager/releases/download"
 
 case "$(uname -m)" in
